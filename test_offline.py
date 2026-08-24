@@ -6,7 +6,8 @@ from types import SimpleNamespace
 from openpyxl import Workbook
 
 from matcher import MemberMatcher, build_weekly_data, observations_from_extractions
-from members import load_members_from_google_sheet, load_members_from_xlsx
+from members import Member, load_members_from_google_sheet, load_members_from_xlsx
+from avatars import AvatarStore, fingerprint_from_bbox
 from storage import AliasStore
 from excel_export import export_weekly_workbook
 
@@ -55,7 +56,66 @@ def test_google_sheet_download_cleanup():
         members_module.urllib.request.urlopen = original
 
 
+
+def test_avatar_assisted_matching():
+    from PIL import Image, ImageDraw
+
+    with TemporaryDirectory() as td:
+        td_path = Path(td)
+        # Create two screenshots with the same feature-rich central avatar but
+        # different outer frames / image sizes.
+        base = Image.new("RGB", (120, 120), "white")
+        draw = ImageDraw.Draw(base)
+        for i in range(0, 120, 12):
+            draw.line((0, i, 119, 119 - i), fill=(20 + i, 80, 160), width=3)
+            draw.rectangle((i // 2, i // 3, 30 + i // 2, 25 + i // 3), outline=(180, 30, 30), width=2)
+        draw.ellipse((28, 20, 92, 84), outline=(10, 10, 10), width=5)
+        draw.line((45, 55, 75, 55), fill=(10, 10, 10), width=4)
+
+        shot1 = Image.new("RGB", (300, 300), (210, 220, 235))
+        shot1.paste(base, (90, 90))
+        shot1_path = td_path / "one.png"
+        shot1.save(shot1_path)
+
+        shot2 = Image.new("RGB", (420, 420), (230, 220, 210))
+        framed = base.resize((150, 150))
+        shot2.paste(framed, (135, 135))
+        shot2_path = td_path / "two.png"
+        shot2.save(shot2_path)
+
+        fp1 = fingerprint_from_bbox(shot1_path, (300, 300, 400, 400))
+        fp2 = fingerprint_from_bbox(shot2_path, (321, 321, 357, 357))
+        assert fp1 and fp2
+
+        members = [
+            Member(1, "Alpha", "R1", None, None),
+            Member(2, "Beta", "R1", None, None),
+        ]
+        alias_store = AliasStore(td_path / "app.sqlite3")
+        avatar_store = AvatarStore(td_path / "app.sqlite3")
+        matcher = MemberMatcher(members, alias_store, avatar_store)
+
+        trusted = row(1, 1, "Alpha", 100)
+        trusted.avatar_bbox = None
+        from matcher import Observation
+        obs1 = Observation("one.png", "tuesday", 1, 1, "Alpha", 100, .99, False,
+                           avatar_fingerprint=fp1)
+        matcher.match_deterministic(obs1)
+        assert obs1.matched_member_id == 1
+        assert matcher.learn_avatar(obs1)
+
+        renamed = Observation("two.png", "saturday", 5, None, "CompletelyNewName", 200, .99, False,
+                              avatar_fingerprint=fp2)
+        matcher.match_deterministic(renamed)
+        assert renamed.matched_member_id is None
+        matcher.match_avatar(renamed)
+        assert renamed.matched_member_id == 1
+        assert renamed.match_method == "avatar_auto"
+
+
 def main():
+    test_avatar_assisted_matching()
+    test_google_sheet_download_cleanup()
     workbook = Path('/mnt/data/LastWar-1537-EfC-R4.xlsx')
     loaded = load_members_from_xlsx(workbook)
     assert len(loaded.members) == 100

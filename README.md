@@ -143,7 +143,8 @@ The app is configured to respect a safe request budget under the OpenAI usage ca
 ```text
 app.py                 # PySide6 desktop application entry point
 extractor.py           # Screenshot extraction and API orchestration
-matcher.py             # Member matching, deduplication, and weekly aggregation
+matcher.py             # Member matching, avatar resolution, deduplication, weekly aggregation
+avatars.py             # Local avatar cropping, fingerprints, similarity, and reference store
 members.py             # Member workbook / Google Sheet loading
 excel_export.py        # Workbook export logic
 storage.py             # SQLite-backed alias and cache storage
@@ -182,3 +183,54 @@ The workbook must contain a worksheet named `Members`. Confirm the sheet name in
 ### Duplicate or ambiguous matches
 
 Use the Review tab to inspect unresolved or conflicting rows and assign the correct member manually when needed.
+
+## Avatar-assisted matching
+
+The desktop app uses avatar/profile images as an additional identity signal for screenshots where the visible player ID or current name is not enough.
+
+### How it works
+
+The extraction schema asks the vision model for an approximate `avatar_bbox` for every extracted row. The box uses normalized screenshot coordinates (`0..1000`), so it works across different screenshot resolutions and UI languages.
+
+The app then performs avatar matching **locally**:
+
+1. Match trusted identities first using visible player ID, exact canonical name, or a saved alias.
+2. Crop those trusted players' avatars from the screenshots and save local avatar fingerprints in the same app SQLite database used for aliases/cache.
+3. After all trusted rows in the weekly batch have been processed, compare unresolved rows with the stored avatar references.
+4. Auto-assign only when the avatar score is high and clearly separated from the second-best candidate.
+5. Otherwise show the avatar candidate in Review and require manual confirmation.
+6. A manual assignment also teaches the avatar library for future weeks.
+
+The matcher combines ORB image features with a multi-scale perceptual hash. The center of the avatar is emphasized so decorative frames have less influence.
+
+This is intentionally a **two-pass weekly match**, so screenshot ordering does not matter. For example, an ID-bearing Tuesday/Thursday screenshot can teach an avatar that is then used to recognize a renamed player in a Saturday screenshot from the same batch.
+
+Avatar comparison does **not** make additional LLM/API requests, so it does not consume extra requests under the 30 RPM API limit. The existing request limiter still defaults to 28 RPM.
+
+### Local data
+
+Avatar references are stored locally under the app data directory together with aliases and extraction cache. They are not written back to the Members spreadsheet.
+
+Changing the extraction schema to include avatar bounding boxes also bumps the extraction cache version, so old cached results without avatar geometry are not accidentally reused by the desktop app.
+
+### Matching priority
+
+The effective matching order is now:
+
+1. visible player ID
+2. exact normalized member name
+3. saved alias
+4. high-confidence avatar auto-match
+5. avatar + fuzzy-name suggestions for manual review
+
+Fuzzy name matching alone still never auto-assigns a player.
+
+## Avatar feature dependencies
+
+The avatar matcher adds:
+
+- `Pillow` for image cropping/resizing
+- `opencv-python-headless` for ORB feature extraction/matching
+- `numpy` for descriptor storage/processing
+
+They are included in `requirements.txt`.

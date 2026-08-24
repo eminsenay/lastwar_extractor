@@ -21,6 +21,7 @@ from excel_export import export_weekly_workbook
 from extractor import ExtractionResult, ScreenshotExtraction, extract_many
 from matcher import MemberMatcher, Observation, build_weekly_data, observations_from_extractions
 from members import Member, MemberLoadResult, load_members_from_google_sheet, load_members_from_xlsx
+from avatars import AvatarStore
 from storage import AliasStore, ExtractionCache
 
 load_dotenv()
@@ -47,7 +48,7 @@ class DropLineEdit(QLineEdit):
         event.acceptProposedAction()
 
 
-PROMPT_CACHE_VERSION = "weekly-extractor-v2-2026-08-24"
+PROMPT_CACHE_VERSION = "weekly-extractor-v3-avatar-bbox-2026-08-24"
 
 
 class ExtractionWorker(QObject):
@@ -143,6 +144,7 @@ class MainWindow(QMainWindow):
         self.settings = QSettings("LastWarTools", "WeeklyExtractor")
         app_dir = Path.home() / ".lastwar_weekly_extractor"
         self.alias_store = AliasStore(app_dir / "app.sqlite3")
+        self.avatar_store = AvatarStore(app_dir / "app.sqlite3")
         self.extraction_cache = ExtractionCache(app_dir / "app.sqlite3")
 
         self.members: list[Member] = []
@@ -325,11 +327,16 @@ class MainWindow(QMainWindow):
         self.members = result.members
         self.member_source = result.source_description
         self.member_warnings = result.warnings
-        self.matcher = MemberMatcher(self.members, self.alias_store)
+        self.matcher = MemberMatcher(self.members, self.alias_store, self.avatar_store)
         self.member_combo.clear()
         for m in sorted(self.members, key=lambda x: x.member_id):
             self.member_combo.addItem(f"{m.member_id} - {m.name}", m.member_id)
-        text = [f"Loaded {len(self.members)} active members from {result.source_description}."]
+        avatar_members, avatar_samples = self.avatar_store.stats()
+        text = [
+            f"Loaded {len(self.members)} active members from {result.source_description}.",
+            f"Avatar reference library: {avatar_members} members / {avatar_samples} samples.",
+            "Trusted ID/name/alias matches automatically teach the local avatar library.",
+        ]
         if result.warnings:
             text.append("\nWarnings:")
             text.extend(f"- {w}" for w in result.warnings)
@@ -446,8 +453,20 @@ class MainWindow(QMainWindow):
         if not self.matcher:
             return
         self.observations, self.base_issues = observations_from_extractions(self.extraction_results)
+
+        # Two-pass matching is deliberate. First establish trusted identities from
+        # visible IDs, exact names and saved aliases across the ENTIRE batch. Those
+        # observations teach the persistent avatar library. Only then use avatars
+        # for unresolved rows, so screenshot ordering does not affect the result.
         for obs in self.observations:
-            self.matcher.match(obs)
+            self.matcher.match_deterministic(obs)
+        for obs in self.observations:
+            if obs.matched_member_id is not None:
+                self.matcher.learn_avatar(obs)
+        for obs in self.observations:
+            if obs.matched_member_id is None:
+                self.matcher.match_avatar(obs)
+
         self._refresh_review_table()
         self._refresh_export_summary()
 
@@ -467,9 +486,13 @@ class MainWindow(QMainWindow):
                 self.review_table.setItem(r, c, item)
         self.review_table.resizeColumnsToContents()
         unmatched = sum(1 for o in self.observations if o.matched_member_id is None)
+        avatar_auto = sum(1 for o in self.observations if o.match_method == "avatar_auto")
+        avatar_members, avatar_samples = self.avatar_store.stats()
         self.review_summary.setText(
-            f"{len(self.observations)} observations; {unmatched} unmatched. "
-            "Fuzzy candidates are suggestions only; assign unresolved rows explicitly."
+            f"{len(self.observations)} observations; {unmatched} unmatched; "
+            f"{avatar_auto} avatar auto-matched. Avatar library: "
+            f"{avatar_members} members / {avatar_samples} samples. "
+            "Low-confidence avatar/fuzzy candidates remain suggestions only."
         )
 
     def _review_selection_changed(self):
@@ -513,10 +536,13 @@ class MainWindow(QMainWindow):
             self.export_summary.setPlainText("Load members first.")
             return
         weekly = build_weekly_data(self.observations, self.members, self.base_issues + self.member_warnings)
+        avatar_members, avatar_samples = self.avatar_store.stats()
         lines = [
             f"Members: {len(self.members)}",
             f"Screenshots: {len(self.screenshot_paths)}",
             f"Extracted observations: {len(self.observations)}",
+            f"Avatar auto-matches: {sum(1 for o in self.observations if o.match_method == 'avatar_auto')}",
+            f"Avatar reference library: {avatar_members} members / {avatar_samples} samples",
             f"Unmatched observations: {sum(1 for o in self.observations if o.matched_member_id is None)}",
             f"Issues/warnings: {len(weekly.issues)}",
             "",

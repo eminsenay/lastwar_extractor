@@ -36,6 +36,9 @@ TASK
    - player ID only if it is explicitly visible before/near the player name
    - player name exactly as visible
    - points as an integer with separators removed
+   - avatar_bbox: the tight bounding box of the player's square/circular avatar,
+     using normalized screenshot coordinates from 0 to 1000 for x, y, width, height.
+     Return null only when the avatar is not sufficiently visible.
 6. A highlighted/pinned alliance/self row may appear separately at the bottom.
    Extract it into pinned_row and DO NOT include it again in rows.
 7. Never infer a missing player ID from rank, avatar, name, or prior knowledge.
@@ -57,6 +60,8 @@ Important quality rules:
 - Distinguish player ID from leaderboard rank.
 - Do not "correct" unusual spellings.
 - Do not fabricate IDs for screenshots that do not display IDs.
+- avatar_bbox must contain only the avatar/profile image and its decorative frame, not the rank or name.
+- Coordinates are normalized to the ENTIRE supplied screenshot: top-left=(0,0), bottom-right=(1000,1000).
 """
 
 SCHEMA: dict[str, Any] = {
@@ -93,9 +98,25 @@ SCHEMA: dict[str, Any] = {
                     "extraction_confidence": {
                         "type": "number", "minimum": 0, "maximum": 1
                     },
+                    "avatar_bbox": {
+                        "anyOf": [
+                            {"type": "null"},
+                            {
+                                "type": "object",
+                                "additionalProperties": False,
+                                "properties": {
+                                    "x": {"type": "integer", "minimum": 0, "maximum": 1000},
+                                    "y": {"type": "integer", "minimum": 0, "maximum": 1000},
+                                    "width": {"type": "integer", "minimum": 1, "maximum": 1000},
+                                    "height": {"type": "integer", "minimum": 1, "maximum": 1000}
+                                },
+                                "required": ["x", "y", "width", "height"]
+                            }
+                        ]
+                    },
                 },
                 "required": [
-                    "rank", "player_id", "raw_name", "points", "extraction_confidence"
+                    "rank", "player_id", "raw_name", "points", "extraction_confidence", "avatar_bbox"
                 ],
             },
         },
@@ -118,9 +139,25 @@ SCHEMA: dict[str, Any] = {
                         "extraction_confidence": {
                             "type": "number", "minimum": 0, "maximum": 1
                         },
+                        "avatar_bbox": {
+                            "anyOf": [
+                                {"type": "null"},
+                                {
+                                    "type": "object",
+                                    "additionalProperties": False,
+                                    "properties": {
+                                        "x": {"type": "integer", "minimum": 0, "maximum": 1000},
+                                        "y": {"type": "integer", "minimum": 0, "maximum": 1000},
+                                        "width": {"type": "integer", "minimum": 1, "maximum": 1000},
+                                        "height": {"type": "integer", "minimum": 1, "maximum": 1000}
+                                    },
+                                    "required": ["x", "y", "width", "height"]
+                                }
+                            ]
+                        },
                     },
                     "required": [
-                        "rank", "player_id", "raw_name", "points", "extraction_confidence"
+                        "rank", "player_id", "raw_name", "points", "extraction_confidence", "avatar_bbox"
                     ],
                 },
             ]
@@ -133,12 +170,23 @@ SCHEMA: dict[str, Any] = {
 }
 
 
+class AvatarBBox(BaseModel):
+    x: int = Field(ge=0, le=1000)
+    y: int = Field(ge=0, le=1000)
+    width: int = Field(ge=1, le=1000)
+    height: int = Field(ge=1, le=1000)
+
+    def as_tuple(self) -> tuple[int, int, int, int]:
+        return self.x, self.y, self.width, self.height
+
+
 class ExtractedRow(BaseModel):
     rank: int = Field(ge=1)
     player_id: int | None = Field(default=None, ge=1)
     raw_name: str = Field(min_length=1)
     points: int = Field(ge=0)
     extraction_confidence: float = Field(ge=0, le=1)
+    avatar_bbox: AvatarBBox | None = None
 
     @field_validator("raw_name")
     @classmethod
