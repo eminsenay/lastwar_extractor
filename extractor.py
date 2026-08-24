@@ -372,14 +372,21 @@ def extract_many(
     limiter = RequestRateLimiter(requests_per_minute)
     results: list[ExtractionResult] = []
 
+    def run_attempt_once(path: Path) -> ExtractionResult:
+        try:
+            extraction = extract_one(client, model, path, limiter, cancel_event=cancel_event)
+            return ExtractionResult(path, extraction, None)
+        except Exception as exc:
+            try:
+                extraction = extract_one(client, model, path, limiter, cancel_event=cancel_event)
+                return ExtractionResult(path, extraction, None)
+            except Exception as retry_exc:
+                return ExtractionResult(path, None, f"{exc}\nRetry failed: {retry_exc}")
+
     for index, path in enumerate(image_paths, start=1):
         if cancel_event is not None and cancel_event.is_set():
             break
-        try:
-            extraction = extract_one(client, model, path, limiter, cancel_event=cancel_event)
-            result = ExtractionResult(path, extraction, None)
-        except Exception as exc:
-            result = ExtractionResult(path, None, str(exc))
+        result = run_attempt_once(path)
         results.append(result)
         if progress:
             progress(index, len(image_paths), result)

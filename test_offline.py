@@ -5,6 +5,8 @@ from types import SimpleNamespace
 
 from openpyxl import Workbook
 
+import extractor
+from extractor import extract_many
 from matcher import MemberMatcher, build_weekly_data, observations_from_extractions
 from members import Member, load_members_from_google_sheet, load_members_from_xlsx
 from avatars import AvatarStore, fingerprint_from_bbox
@@ -17,6 +19,40 @@ def row(rank, player_id, raw_name, points, confidence=.99):
         rank=rank, player_id=player_id, raw_name=raw_name,
         points=points, extraction_confidence=confidence
     )
+
+
+def test_extract_many_retries_once_on_llm_failure():
+    from PIL import Image
+
+    with TemporaryDirectory() as td:
+        td_path = Path(td)
+        img = td_path / "sample.png"
+        Image.new("RGB", (10, 10), color="white").save(img)
+        calls = {"count": 0}
+
+        class FakeResponse:
+            output_text = '{"detected_day":"monday","day_confidence":1.0,"ui_language":"english","rows":[],"pinned_row":null,"warnings":[]}'
+
+        class FakeClient:
+            class responses:
+                @staticmethod
+                def create(**kwargs):
+                    calls["count"] += 1
+                    if calls["count"] == 1:
+                        raise RuntimeError("temporary llm failure")
+                    return FakeResponse()
+
+        original = extractor.make_client
+        extractor.make_client = lambda api_key=None, base_url=None: FakeClient()
+        try:
+            results = extract_many([img], "gpt-test", requests_per_minute=1)
+        finally:
+            extractor.make_client = original
+
+        assert len(results) == 1
+        assert results[0].error is None
+        assert results[0].extraction.detected_day == "monday"
+        assert calls["count"] == 2
 
 
 def test_google_sheet_download_cleanup():

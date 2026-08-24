@@ -537,6 +537,7 @@ class MainWindow(QMainWindow):
             return
         weekly = build_weekly_data(self.observations, self.members, self.base_issues + self.member_warnings)
         avatar_members, avatar_samples = self.avatar_store.stats()
+        failed_files = [r.image_path.name for r in self.extraction_results if r.error]
         lines = [
             f"Members: {len(self.members)}",
             f"Screenshots: {len(self.screenshot_paths)}",
@@ -553,6 +554,10 @@ class MainWindow(QMainWindow):
                 lines.append(f"- {day.title()}: {len(missing)} missing")
         else:
             lines.append("- No days have been extracted yet.")
+        if failed_files:
+            lines.extend(["", "Screenshots requiring manual processing:"])
+            for name in failed_files:
+                lines.append(f"- {name}")
         self.export_summary.setPlainText("\n".join(lines))
 
     def _export_excel(self):
