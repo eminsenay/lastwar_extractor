@@ -56,11 +56,12 @@ class ExtractionWorker(QObject):
     finished = Signal(object)
     failed = Signal(str)
 
-    def __init__(self, paths, model, base_url, rpm, cache, use_cache=True):
+    def __init__(self, paths, model, base_url, api_style, rpm, cache, use_cache=True):
         super().__init__()
         self.paths = paths
         self.model = model
         self.base_url = base_url
+        self.api_style = api_style
         self.rpm = rpm
         self.cache = cache
         self.use_cache = use_cache
@@ -74,6 +75,7 @@ class ExtractionWorker(QObject):
         h.update(path.read_bytes())
         h.update(self.model.encode("utf-8"))
         h.update(self.base_url.encode("utf-8"))
+        h.update(self.api_style.encode("ascii"))
         h.update(PROMPT_CACHE_VERSION.encode("ascii"))
         return h.hexdigest()
 
@@ -118,6 +120,7 @@ class ExtractionWorker(QObject):
                     uncached,
                     model=self.model,
                     base_url=self.base_url,
+                    api_style=self.api_style,
                     requests_per_minute=self.rpm,
                     progress=cb,
                     cancel_event=self.cancel_event,
@@ -188,12 +191,17 @@ class MainWindow(QMainWindow):
 
         self.model_edit = QLineEdit(os.getenv("OPENAI_MODEL", "gpt-5.6-terra"))
         self.base_url_edit = QLineEdit(os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1"))
+        self.api_style = QComboBox()
+        self.api_style.addItem("Responses API (OpenAI)", "responses")
+        self.api_style.addItem("Chat Completions API (local)", "chat")
+        self.api_style.setCurrentIndex(1 if os.getenv("OPENAI_API_STYLE", "responses") == "chat" else 0)
         self.rpm_spin = QSpinBox()
         self.rpm_spin.setRange(1, 30)
         self.rpm_spin.setValue(28)
         self.rpm_spin.setToolTip("28 RPM is the default safety margin under your 30 RPM limit.")
         form.addRow("Vision model", self.model_edit)
         form.addRow("API base URL", self.base_url_edit)
+        form.addRow("API style", self.api_style)
         form.addRow("Requests / minute", self.rpm_spin)
 
         layout.addLayout(form)
@@ -293,6 +301,8 @@ class MainWindow(QMainWindow):
         self.sheet_name.setText(str(self.settings.value("sheet_name", "Members")))
         self.model_edit.setText(str(self.settings.value("model", self.model_edit.text())))
         self.base_url_edit.setText(str(self.settings.value("base_url", self.base_url_edit.text())))
+        saved_style = str(self.settings.value("api_style", self.api_style.currentData()))
+        self.api_style.setCurrentIndex(max(0, self.api_style.findData(saved_style)))
         self.rpm_spin.setValue(int(self.settings.value("rpm", 28)))
 
     def closeEvent(self, event):
@@ -301,6 +311,7 @@ class MainWindow(QMainWindow):
         self.settings.setValue("sheet_name", self.sheet_name.text())
         self.settings.setValue("model", self.model_edit.text())
         self.settings.setValue("base_url", self.base_url_edit.text())
+        self.settings.setValue("api_style", self.api_style.currentData())
         self.settings.setValue("rpm", self.rpm_spin.value())
         super().closeEvent(event)
 
@@ -396,7 +407,8 @@ class MainWindow(QMainWindow):
         if not self.screenshot_paths:
             QMessageBox.warning(self, "No screenshots", "Add screenshots first.")
             return
-        if not os.getenv("OPENAI_API_KEY"):
+        local_endpoint = any(host in self.base_url_edit.text().casefold() for host in ("localhost", "127.0.0.1", "::1"))
+        if not os.getenv("OPENAI_API_KEY") and not local_endpoint:
             QMessageBox.warning(
                 self, "API key missing",
                 "OPENAI_API_KEY is not set. Put it in the environment or a .env file."
@@ -412,7 +424,7 @@ class MainWindow(QMainWindow):
         self.worker_thread = QThread()
         self.worker = ExtractionWorker(
             list(self.screenshot_paths), self.model_edit.text().strip(),
-            self.base_url_edit.text().strip(), self.rpm_spin.value(),
+            self.base_url_edit.text().strip(), self.api_style.currentData(), self.rpm_spin.value(),
             self.extraction_cache, self.use_cache.isChecked()
         )
         self.worker.moveToThread(self.worker_thread)

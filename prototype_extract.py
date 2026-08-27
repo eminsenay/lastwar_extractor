@@ -36,10 +36,12 @@ def main() -> int:
     parser.add_argument("--output-dir", default="output")
     parser.add_argument("--model", default=os.getenv("OPENAI_MODEL", "gpt-5.6-terra"))
     parser.add_argument("--base-url", default=os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1"))
+    parser.add_argument("--api-style", choices=["responses", "chat"], default=os.getenv("OPENAI_API_STYLE", "responses"))
     parser.add_argument("--rpm", type=int, default=int(os.getenv("OPENAI_RPM", "28")))
     args = parser.parse_args()
 
-    if not os.getenv("OPENAI_API_KEY"):
+    local_endpoint = any(host in args.base_url.casefold() for host in ("localhost", "127.0.0.1", "::1"))
+    if not os.getenv("OPENAI_API_KEY") and not local_endpoint:
         print("OPENAI_API_KEY is not set. Set it in the environment or .env.", file=sys.stderr)
         return 2
 
@@ -55,7 +57,7 @@ def main() -> int:
 
     results = extract_many(
         images, model=args.model, base_url=args.base_url,
-        requests_per_minute=args.rpm, progress=progress
+        requests_per_minute=args.rpm, progress=progress, api_style=args.api_style
     )
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)

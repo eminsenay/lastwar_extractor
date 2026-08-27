@@ -249,12 +249,18 @@ def encode_image_as_data_url(path: Path) -> str:
 
 
 def make_client(api_key: str | None = None, base_url: str | None = None) -> OpenAI:
+    resolved_base_url = base_url or os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1")
     key = api_key or os.getenv("OPENAI_API_KEY")
     if not key:
+        key = "local" if _is_local_endpoint(resolved_base_url) else None
+    if not key:
         raise RuntimeError("OPENAI_API_KEY is not set")
-    resolved_base_url = base_url or os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1")
     # Disable SDK auto-retries so our rate limiter governs every request attempt.
     return OpenAI(api_key=key, base_url=resolved_base_url, max_retries=0)
+
+
+def _is_local_endpoint(base_url: str) -> bool:
+    return any(host in base_url.casefold() for host in ("localhost", "127.0.0.1", "::1"))
 
 
 def _retry_delay(exc: Exception, attempt: int) -> float:
@@ -286,6 +292,7 @@ def extract_one(
     limiter: RequestRateLimiter,
     cancel_event: threading.Event | None = None,
     max_attempts: int = 4,
+    api_style: str = "responses",
 ) -> ScreenshotExtraction:
     image_url = encode_image_as_data_url(image_path)
 
@@ -295,32 +302,46 @@ def extract_one(
             raise RuntimeError("Cancelled")
         limiter.wait(cancel_event)
         try:
-            response = client.responses.create(
-                model=model,
-                input=[
-                    {
+            if api_style == "chat":
+                response = client.chat.completions.create(
+                    model=model,
+                    messages=[{"role": "user", "content": [
+                        {"type": "text", "text": PROMPT},
+                        {"type": "image_url", "image_url": {"url": image_url, "detail": "high"}},
+                    ]}],
+                    response_format={"type": "json_schema", "json_schema": {
+                        "name": "ranking_screenshot_extraction",
+                        "strict": True,
+                        "schema": SCHEMA,
+                    }},
+                )
+                output_text = response.choices[0].message.content or ""
+            elif api_style == "responses":
+                response = client.responses.create(
+                    model=model,
+                    input=[{
                         "role": "user",
                         "content": [
                             {"type": "input_text", "text": PROMPT},
                             {"type": "input_image", "image_url": image_url, "detail": "high"},
                         ],
-                    }
-                ],
-                text={
-                    "format": {
+                    }],
+                    text={"format": {
                         "type": "json_schema",
                         "name": "ranking_screenshot_extraction",
                         "strict": True,
                         "schema": SCHEMA,
-                    }
-                },
-            )
+                    }},
+                )
+                output_text = response.output_text
+            else:
+                raise ValueError("api_style must be 'responses' or 'chat'")
             try:
-                payload = json.loads(response.output_text)
+                payload = json.loads(output_text)
             except json.JSONDecodeError as exc:
                 raise RuntimeError(
                     f"Model returned non-JSON output for {image_path.name}: "
-                    f"{response.output_text[:500]!r}"
+                    f"{output_text[:500]!r}"
                 ) from exc
             try:
                 return ScreenshotExtraction.model_validate(payload)
@@ -367,6 +388,7 @@ def extract_many(
     requests_per_minute: int = 28,
     progress: Callable[[int, int, ExtractionResult], None] | None = None,
     cancel_event: threading.Event | None = None,
+    api_style: str = "responses",
 ) -> list[ExtractionResult]:
     client = make_client(api_key=api_key, base_url=base_url)
     limiter = RequestRateLimiter(requests_per_minute)
@@ -374,11 +396,11 @@ def extract_many(
 
     def run_attempt_once(path: Path) -> ExtractionResult:
         try:
-            extraction = extract_one(client, model, path, limiter, cancel_event=cancel_event)
+            extraction = extract_one(client, model, path, limiter, cancel_event=cancel_event, api_style=api_style)
             return ExtractionResult(path, extraction, None)
         except Exception as exc:
             try:
-                extraction = extract_one(client, model, path, limiter, cancel_event=cancel_event)
+                extraction = extract_one(client, model, path, limiter, cancel_event=cancel_event, api_style=api_style)
                 return ExtractionResult(path, extraction, None)
             except Exception as retry_exc:
                 return ExtractionResult(path, None, f"{exc}\nRetry failed: {retry_exc}")

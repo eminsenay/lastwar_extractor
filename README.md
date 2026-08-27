@@ -39,7 +39,7 @@ This project helps you process weekly Last War leaderboard screenshots from a mo
 ## Requirements
 
 - Python 3.11 or newer
-- A valid OpenAI API key in the environment
+- Either an OpenAI-compatible vision endpoint, or a local vision model server
 - Access to the screenshots to process
 - A member workbook or a public Google Sheets URL containing a worksheet named Members
 
@@ -78,7 +78,50 @@ Optional configuration values:
 ```env
 OPENAI_MODEL=gpt-5.6-terra
 OPENAI_BASE_URL=https://api.openai.com/v1
+OPENAI_API_STYLE=responses
 ```
+
+## Using a local Hugging Face model
+
+The app can use a vision model downloaded from Hugging Face through a local
+OpenAI-compatible server. LM Studio is one practical option on Windows:
+
+1. Install LM Studio and download a vision-capable model such as
+  `Qwen2.5-VL-3B-Instruct` from Hugging Face. Use the 7B variant if your GPU
+  has enough memory; local vision models need substantially more memory than
+  text-only models.
+2. Load the model in LM Studio and start its local server on port `1234`.
+3. In the app Setup tab, set:
+  - **Vision model**: the model identifier shown by LM Studio
+  - **API base URL**: `http://127.0.0.1:1234/v1`
+  - **API style**: `Chat Completions API (local)`
+  - **Requests / minute**: a value appropriate for your machine, often `1`
+    or `2`
+4. Extract screenshots as usual. No `OPENAI_API_KEY` is needed for a
+  `localhost` or `127.0.0.1` endpoint.
+
+The same setup works with the CLI:
+
+```powershell
+python prototype_extract.py .\screenshots `
+  --model <model-id-from-lm-studio> `
+  --base-url http://127.0.0.1:1234/v1 `
+  --api-style chat --rpm 2
+```
+
+For `.env`-based configuration, use:
+
+```env
+OPENAI_MODEL=<model-id-from-lm-studio>
+OPENAI_BASE_URL=http://127.0.0.1:1234/v1
+OPENAI_API_STYLE=chat
+OPENAI_RPM=2
+```
+
+The local model must support image input and JSON output. Local structured
+output support varies by runtime; if the server rejects the JSON schema,
+update LM Studio or choose a vision model/runtime with structured-output
+support. The app still validates every response locally with Pydantic.
 
 ## Running the app
 
@@ -170,7 +213,9 @@ This project is licensed under the MIT License. See [LICENSE](LICENSE) for the f
 
 ### Missing API key
 
-If the app reports that `OPENAI_API_KEY` is not set, make sure your `.env` file exists and contains a valid key.
+For a cloud endpoint, make sure your `.env` file exists and contains a valid
+`OPENAI_API_KEY`. Local `localhost` and `127.0.0.1` endpoints do not require
+one.
 
 ### Google Sheets load failure
 
