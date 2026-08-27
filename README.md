@@ -87,17 +87,14 @@ The app can use a vision model downloaded from Hugging Face through a local
 OpenAI-compatible server. LM Studio is one practical option on Windows:
 
 1. Install LM Studio and download a vision-capable model such as
-  `Qwen2.5-VL-3B-Instruct` from Hugging Face. Use the 7B variant if your GPU
-  has enough memory; local vision models need substantially more memory than
-  text-only models.
-2. Load the model in LM Studio and start its local server on port `1234`.
-3. In the app Setup tab, set:
+  `ministral-3-3b` from Hugging Face.
+1. Load the model in LM Studio and start its local server on port `1234`.
+2. In the app Setup tab, set:
   - **Vision model**: the model identifier shown by LM Studio
   - **API base URL**: `http://127.0.0.1:1234/v1`
   - **API style**: `Chat Completions API (local)`
-  - **Requests / minute**: a value appropriate for your machine, often `1`
-    or `2`
-4. Extract screenshots as usual. No `OPENAI_API_KEY` is needed for a
+  - **Requests / minute**: a value appropriate for your machine
+3. Extract screenshots as usual. No `OPENAI_API_KEY` is needed for a
   `localhost` or `127.0.0.1` endpoint.
 
 The same setup works with the CLI:
@@ -106,7 +103,7 @@ The same setup works with the CLI:
 python prototype_extract.py .\screenshots `
   --model <model-id-from-lm-studio> `
   --base-url http://127.0.0.1:1234/v1 `
-  --api-style chat --rpm 2
+  --api-style chat --rpm 10
 ```
 
 For `.env`-based configuration, use:
