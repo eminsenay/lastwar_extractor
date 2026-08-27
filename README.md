@@ -279,3 +279,13 @@ The avatar matcher adds:
 - `numpy` for descriptor storage/processing
 
 They are included in `requirements.txt`.
+
+
+## Local-model compatibility
+
+The day is inferred primarily from the **selected tab position**, not the written language.
+
+Local-model compatibility safeguards are applied after JSON parsing:
+
+- `day_confidence` is always normalized to the `0.0..1.0` range. If a model mistakenly returns the weekday index (for example `6` for Saturday), the app converts a matching index to `1.0` and records a warning.
+- Ranking rows explicitly separate the first/upper **player-name** line (`raw_name`) from the second/lower **alliance/role** line (`alliance_name`). The prompt and schema reinforce this distinction, and an unambiguous swapped pair is repaired automatically.

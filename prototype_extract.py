@@ -80,7 +80,7 @@ def main() -> int:
     with (output_dir / "extraction_rows.csv").open("w", newline="", encoding="utf-8-sig") as f:
         writer = csv.DictWriter(f, fieldnames=[
             "source_file", "day", "ui_language", "rank", "player_id", "raw_name",
-            "points", "extraction_confidence", "is_pinned_row"
+            "alliance_name", "points", "extraction_confidence", "is_pinned_row"
         ])
         writer.writeheader()
         for result in results:
@@ -95,6 +95,7 @@ def main() -> int:
                     "rank": row.rank,
                     "player_id": row.player_id,
                     "raw_name": row.raw_name,
+                    "alliance_name": getattr(row, "alliance_name", None),
                     "points": row.points,
                     "extraction_confidence": row.extraction_confidence,
                     "is_pinned_row": row is e.pinned_row,

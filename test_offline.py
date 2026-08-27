@@ -149,7 +149,61 @@ def test_avatar_assisted_matching():
         assert renamed.match_method == "avatar_auto"
 
 
+
+def test_local_model_payload_sanitization():
+    payload = {
+        "detected_day": "saturday",
+        "day_confidence": 6,
+        "ui_language": "turkish",
+        "rows": [
+            {
+                "rank": 1,
+                "player_id": None,
+                "raw_name": "[EfC] Elite Force Commander",
+                "alliance_name": "Player One",
+                "points": 123456,
+                "extraction_confidence": 0.9,
+                "avatar_bbox": None,
+            },
+            {
+                "rank": 2,
+                "player_id": None,
+                "raw_name": "Player Two",
+                "points": 120000,
+                "extraction_confidence": 0.9,
+                "avatar_bbox": None,
+            },
+        ],
+        "pinned_row": None,
+        "warnings": [],
+    }
+    fixed = extractor._sanitize_model_payload(payload)
+    assert fixed["day_confidence"] == 1.0
+    assert fixed["rows"][0]["raw_name"] == "Player One"
+    assert fixed["rows"][0]["alliance_name"] == "[EfC] Elite Force Commander"
+    assert fixed["rows"][1]["alliance_name"] is None
+    parsed = extractor.ScreenshotExtraction.model_validate(fixed)
+    assert parsed.day_confidence == 1.0
+    assert parsed.rows[0].raw_name == "Player One"
+
+
+def test_conflicting_day_index_becomes_zero_confidence():
+    payload = {
+        "detected_day": "thursday",
+        "day_confidence": 6,
+        "ui_language": "english",
+        "rows": [],
+        "pinned_row": None,
+        "warnings": [],
+    }
+    fixed = extractor._sanitize_model_payload(payload)
+    assert fixed["day_confidence"] == 0.0
+    assert any("conflicting" in w for w in fixed["warnings"])
+
+
 def main():
+    test_local_model_payload_sanitization()
+    test_conflicting_day_index_becomes_zero_confidence()
     test_avatar_assisted_matching()
     test_google_sheet_download_cleanup()
     workbook = Path('/mnt/data/LastWar-1537-EfC-R4.xlsx')

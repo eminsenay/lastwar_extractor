@@ -30,11 +30,19 @@ TASK
    Prefer the VISUAL POSITION of the selected tab:
    1=Monday, 2=Tuesday, 3=Wednesday,
    4=Thursday, 5=Friday, 6=Saturday.
+   IMPORTANT: day_confidence is a confidence/probability from 0.0 to 1.0.
+   It is NOT the weekday position/number. For example, for Saturday return
+   detected_day="saturday" and day_confidence=1.0 (or another value <= 1.0), NEVER 6.
 4. Extract every sufficiently visible ranking row in the main scrolling list.
-5. For each row extract:
+5. Each leaderboard entry has TWO text lines beside the avatar:
+   - FIRST / UPPER line: the PLAYER NAME (and, on some screenshots, a numeric player ID before it).
+   - SECOND / LOWER line: the ALLIANCE / ROLE text, e.g. "[EfC] Elite Force Commander".
+   These are different fields. NEVER return the second/lower alliance line as raw_name.
+   For each row extract:
    - rank
-   - player ID only if it is explicitly visible before/near the player name
-   - player name exactly as visible
+   - player ID only if it is explicitly visible before/near the player name on the FIRST line
+   - raw_name: ONLY the player name from the FIRST / UPPER line, exactly as visible
+   - alliance_name: ONLY the SECOND / LOWER alliance or role line, exactly as visible; null if absent/unreadable
    - points as an integer with separators removed
    - avatar_bbox: the tight bounding box of the player's square/circular avatar,
      using normalized screenshot coordinates from 0 to 1000 for x, y, width, height.
@@ -44,7 +52,8 @@ TASK
 7. Never infer a missing player ID from rank, avatar, name, or prior knowledge.
 8. Preserve Unicode characters in player names.
 9. Do not translate player names.
-10. Ignore alliance text such as "[EfC] Elite Force Commander".
+10. Do not confuse alliance/role text with the player name. Capture the second line in alliance_name,
+    but NEVER copy it into raw_name.
 11. Ignore banners, timers, announcements, buttons, headers, and unrelated UI text.
 12. If a row is too obscured to read its score reliably, omit it rather than inventing data.
 13. If text is ambiguous:
@@ -60,6 +69,11 @@ Important quality rules:
 - Distinguish player ID from leaderboard rank.
 - Do not "correct" unusual spellings.
 - Do not fabricate IDs for screenshots that do not display IDs.
+- raw_name must come from the FIRST / UPPER text line next to the avatar.
+- alliance_name must come from the SECOND / LOWER text line next to the avatar.
+- If the visible text is "Player123" on the first line and "[EfC] Elite Force Commander" on the second,
+  raw_name MUST be "Player123" and alliance_name MUST be "[EfC] Elite Force Commander".
+- day_confidence MUST be between 0.0 and 1.0 and MUST NEVER contain the weekday index (1-6).
 - avatar_bbox must contain only the avatar/profile image and its decorative frame, not the rank or name.
 - Coordinates are normalized to the ENTIRE supplied screenshot: top-left=(0,0), bottom-right=(1000,1000).
 """
@@ -75,7 +89,10 @@ SCHEMA: dict[str, Any] = {
                 "thursday", "friday", "saturday"
             ],
         },
-        "day_confidence": {"type": "number", "minimum": 0, "maximum": 1},
+        "day_confidence": {
+            "type": "number", "minimum": 0, "maximum": 6,
+            "description": "Confidence probability should be 0.0 to 1.0. Values 2-6 are accepted only for compatibility with local models that mistakenly emit the weekday index; the app normalizes them before validation."
+        },
         "ui_language": {
             "type": "string",
             "enum": ["english", "turkish", "arabic", "mixed", "unknown"],
@@ -93,7 +110,14 @@ SCHEMA: dict[str, Any] = {
                             {"type": "null"},
                         ]
                     },
-                    "raw_name": {"type": "string", "minLength": 1},
+                    "raw_name": {
+                        "type": "string", "minLength": 1,
+                        "description": "PLAYER NAME from the FIRST/UPPER text line beside the avatar. Never the alliance/role line."
+                    },
+                    "alliance_name": {
+                        "anyOf": [{"type": "string"}, {"type": "null"}],
+                        "description": "Alliance/role text from the SECOND/LOWER line, e.g. [EfC] Elite Force Commander; null if absent/unreadable."
+                    },
                     "points": {"type": "integer", "minimum": 0},
                     "extraction_confidence": {
                         "type": "number", "minimum": 0, "maximum": 1
@@ -116,7 +140,7 @@ SCHEMA: dict[str, Any] = {
                     },
                 },
                 "required": [
-                    "rank", "player_id", "raw_name", "points", "extraction_confidence", "avatar_bbox"
+                    "rank", "player_id", "raw_name", "alliance_name", "points", "extraction_confidence", "avatar_bbox"
                 ],
             },
         },
@@ -134,7 +158,14 @@ SCHEMA: dict[str, Any] = {
                                 {"type": "null"},
                             ]
                         },
-                        "raw_name": {"type": "string", "minLength": 1},
+                        "raw_name": {
+                            "type": "string", "minLength": 1,
+                            "description": "PLAYER NAME from the FIRST/UPPER text line beside the avatar. Never the alliance/role line."
+                        },
+                        "alliance_name": {
+                            "anyOf": [{"type": "string"}, {"type": "null"}],
+                            "description": "Alliance/role text from the SECOND/LOWER line; null if absent/unreadable."
+                        },
                         "points": {"type": "integer", "minimum": 0},
                         "extraction_confidence": {
                             "type": "number", "minimum": 0, "maximum": 1
@@ -157,7 +188,7 @@ SCHEMA: dict[str, Any] = {
                         },
                     },
                     "required": [
-                        "rank", "player_id", "raw_name", "points", "extraction_confidence", "avatar_bbox"
+                        "rank", "player_id", "raw_name", "alliance_name", "points", "extraction_confidence", "avatar_bbox"
                     ],
                 },
             ]
@@ -184,6 +215,7 @@ class ExtractedRow(BaseModel):
     rank: int = Field(ge=1)
     player_id: int | None = Field(default=None, ge=1)
     raw_name: str = Field(min_length=1)
+    alliance_name: str | None = None
     points: int = Field(ge=0)
     extraction_confidence: float = Field(ge=0, le=1)
     avatar_bbox: AvatarBBox | None = None
@@ -285,6 +317,93 @@ def _is_retryable(exc: Exception) -> bool:
     return any(token in name for token in ("ratelimit", "timeout", "connection", "internalserver"))
 
 
+DAY_INDEX = {
+    "monday": 1,
+    "tuesday": 2,
+    "wednesday": 3,
+    "thursday": 4,
+    "friday": 5,
+    "saturday": 6,
+}
+
+
+def _looks_like_alliance_text(value: Any) -> bool:
+    if not isinstance(value, str):
+        return False
+    text = " ".join(value.casefold().split())
+    return (
+        "elite force commander" in text
+        or "alliance" in text
+        or (text.startswith("[") and "]" in text)
+    )
+
+
+def _sanitize_model_payload(payload: dict[str, Any]) -> dict[str, Any]:
+    """Repair common schema mistakes from OpenAI-compatible local models.
+
+    Some local models confuse the weekday index with day_confidence (for example,
+    returning 6 for Saturday), or swap the two visible text lines in a ranking row.
+    Keep these repairs deterministic and record them as model warnings.
+    """
+    warnings = payload.get("warnings")
+    if not isinstance(warnings, list):
+        warnings = []
+        payload["warnings"] = warnings
+
+    # day_confidence must be a probability in [0, 1], never the 1-6 weekday index.
+    raw_conf = payload.get("day_confidence")
+    try:
+        conf = float(raw_conf)
+    except (TypeError, ValueError):
+        conf = 0.0
+        warnings.append(f"Invalid day_confidence {raw_conf!r}; normalized to 0.0.")
+    else:
+        if conf > 1.0:
+            day = str(payload.get("detected_day", "")).casefold()
+            expected_index = DAY_INDEX.get(day)
+            if conf.is_integer() and 1 <= int(conf) <= 6:
+                if expected_index == int(conf):
+                    normalized = 1.0
+                    reason = "weekday index matching detected_day"
+                else:
+                    normalized = 0.0
+                    reason = "weekday index conflicting with detected_day"
+                warnings.append(
+                    f"day_confidence {raw_conf!r} looked like a {reason}; normalized to {normalized:.1f}."
+                )
+                conf = normalized
+            else:
+                warnings.append(f"day_confidence {raw_conf!r} was outside 0..1; clamped to 1.0.")
+                conf = 1.0
+        elif conf < 0.0:
+            warnings.append(f"day_confidence {raw_conf!r} was below 0; clamped to 0.0.")
+            conf = 0.0
+    payload["day_confidence"] = conf
+
+    def sanitize_row(row: Any, label: str) -> None:
+        if not isinstance(row, dict):
+            return
+        # Backward/local-model compatibility: schema now asks for this explicitly,
+        # but accepting missing alliance_name keeps slightly non-compliant models usable.
+        row.setdefault("alliance_name", None)
+        raw_name = row.get("raw_name")
+        alliance_name = row.get("alliance_name")
+        # If a model swapped the two lines, repair it when the swap is unambiguous.
+        if _looks_like_alliance_text(raw_name) and isinstance(alliance_name, str) and not _looks_like_alliance_text(alliance_name):
+            row["raw_name"], row["alliance_name"] = alliance_name, raw_name
+            warnings.append(f"{label}: swapped player/alliance text lines returned by the model.")
+        elif _looks_like_alliance_text(raw_name):
+            warnings.append(
+                f"{label}: raw_name still looks like alliance/role text; player name could not be recovered automatically."
+            )
+
+    for index, row in enumerate(payload.get("rows") or [], start=1):
+        sanitize_row(row, f"row {index}")
+    if payload.get("pinned_row") is not None:
+        sanitize_row(payload["pinned_row"], "pinned_row")
+    return payload
+
+
 def extract_one(
     client: OpenAI,
     model: str,
@@ -343,6 +462,7 @@ def extract_one(
                     f"Model returned non-JSON output for {image_path.name}: "
                     f"{output_text[:500]!r}"
                 ) from exc
+            payload = _sanitize_model_payload(payload)
             try:
                 return ScreenshotExtraction.model_validate(payload)
             except ValidationError as exc:
@@ -373,6 +493,10 @@ def basic_sanity_checks(result: ScreenshotExtraction) -> list[str]:
 
     seen_ids: set[int] = set()
     for row in result.rows:
+        if _looks_like_alliance_text(row.raw_name):
+            warnings.append(
+                f"Rank {row.rank} raw_name still looks like alliance/role text: {row.raw_name!r}."
+            )
         if row.player_id is not None:
             if row.player_id in seen_ids:
                 warnings.append(f"Player ID {row.player_id} appears more than once in the screenshot.")

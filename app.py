@@ -48,7 +48,7 @@ class DropLineEdit(QLineEdit):
         event.acceptProposedAction()
 
 
-PROMPT_CACHE_VERSION = "weekly-extractor-v3-avatar-bbox-2026-08-24"
+PROMPT_CACHE_VERSION = "weekly-extractor-v4-day-confidence-player-line-2026-08-27"
 
 
 class ExtractionWorker(QObject):
