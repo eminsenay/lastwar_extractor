@@ -5,8 +5,11 @@ import type { AppState, EventEnvelope, Observation, WorkflowTab } from "./types/
 
 const client = new BackendClient();
 let activeTab: WorkflowTab = "setup";
-let rosterSourceType: "xlsx" | "google_sheet" = "xlsx";
-let rosterPath = "";
+let rosterSourceType: "xlsx" | "google_sheet" =
+  (localStorage.getItem("lastwar_roster_source_type") as "xlsx" | "google_sheet") || "xlsx";
+let rosterXlsxPath = localStorage.getItem("lastwar_roster_xlsx_path") || "";
+let rosterGoogleSheetUrl = localStorage.getItem("lastwar_roster_google_url") || "";
+let rosterSheetName = localStorage.getItem("lastwar_roster_sheet_name") || "Members";
 let rosterStatus: "idle" | "loading" | "success" | "error" = "idle";
 let rosterStatusMessage = "";
 let rosterWarnings: string[] = [];
@@ -31,6 +34,25 @@ let state: AppState = {
 
 const app = document.querySelector<HTMLDivElement>("#app")!;
 
+function syncRosterInputsFromDOM(): void {
+  const rosterInput = document.querySelector<HTMLInputElement>("#roster");
+  if (rosterInput) {
+    const val = rosterInput.value;
+    if (rosterSourceType === "xlsx") {
+      rosterXlsxPath = val;
+      localStorage.setItem("lastwar_roster_xlsx_path", val);
+    } else {
+      rosterGoogleSheetUrl = val;
+      localStorage.setItem("lastwar_roster_google_url", val);
+    }
+  }
+  const sheetInput = document.querySelector<HTMLInputElement>("#sheet");
+  if (sheetInput) {
+    rosterSheetName = sheetInput.value;
+    localStorage.setItem("lastwar_roster_sheet_name", rosterSheetName);
+  }
+}
+
 function render(): void {
   const steps: [WorkflowTab, string, string][] = [
     ["setup", "01", "Roster"], ["import", "02", "Screenshots"],
@@ -53,6 +75,7 @@ function render(): void {
     </main>`;
   app.querySelectorAll<HTMLButtonElement>("[data-tab]").forEach((button) => {
     button.onclick = () => {
+      syncRosterInputsFromDOM();
       activeTab = button.dataset.tab as WorkflowTab;
       settingsStatus = "idle";
       render();
@@ -62,17 +85,20 @@ function render(): void {
 }
 
 function renderTab(): string {
-  if (activeTab === "setup") return `<div class="intro"><span class="eyebrow">01 / roster</span><h2>Start with the source of truth.</h2><p>Load the active member roster before importing leaderboard captures.</p><div class="panel form-panel"><div class="source-toggle" role="group" aria-label="Roster source"><button class="source-option ${rosterSourceType === "xlsx" ? "selected" : ""}" id="source-xlsx">Local Excel</button><button class="source-option ${rosterSourceType === "google_sheet" ? "selected" : ""}" id="source-google">Google Sheet URL</button></div><label>${rosterSourceType === "xlsx" ? "Roster file" : "Google Sheet URL"} <div class="input-row"><input id="roster" value="${escapeHtml(rosterPath)}" placeholder="${rosterSourceType === "xlsx" ? "Path to .xlsx workbook" : "https://docs.google.com/spreadsheets/d/..."}" />${rosterSourceType === "xlsx" ? '<button class="secondary compact" id="browse-roster">Browse</button>' : ""}</div></label><label>Worksheet <input id="sheet" value="Members" /></label><button class="primary" id="load" ${rosterStatus === "loading" ? "disabled" : ""}>Load roster <span>→</span></button>${
-    rosterStatus !== "idle" ? `<div class="status-panel status-${rosterStatus}"><div class="status-content">${
-      rosterStatus === "loading" ? '<span class="spinner">⟳</span> <span>Loading roster...</span>' : 
-      rosterStatus === "success" ? `<span class="icon">✓</span> <span><strong>${rosterStatusMessage}</strong>${
-        rosterWarnings.length || rosterLoadedAt ? `<div class="status-meta">${rosterLoadedAt ? `Last loaded: ${getTimeAgo(rosterLoadedAt)}` : ""}</div>${
-          rosterWarnings.length ? `<div class="status-warnings">${rosterWarnings.map(w => `<div>⚠ ${escapeHtml(w)}</div>`).join("")}</div>` : ""
-        }` : ""
-      }</span>` :
-      `<span class="icon">✗</span> <span><strong>Error:</strong> ${escapeHtml(rosterStatusMessage)}</span>`
-    }</div></div>` : ""
-  }</div></div>`;
+  if (activeTab === "setup") {
+    const currentPath = rosterSourceType === "xlsx" ? rosterXlsxPath : rosterGoogleSheetUrl;
+    return `<div class="intro"><span class="eyebrow">01 / roster</span><h2>Start with the source of truth.</h2><p>Load the active member roster before importing leaderboard captures.</p><div class="panel form-panel"><div class="source-toggle" role="group" aria-label="Roster source"><button class="source-option ${rosterSourceType === "xlsx" ? "selected" : ""}" id="source-xlsx">Local Excel</button><button class="source-option ${rosterSourceType === "google_sheet" ? "selected" : ""}" id="source-google">Google Sheet URL</button></div><label>${rosterSourceType === "xlsx" ? "Roster file" : "Google Sheet URL"} <div class="input-row"><input id="roster" value="${escapeHtml(currentPath)}" placeholder="${rosterSourceType === "xlsx" ? "Path to .xlsx workbook" : "https://docs.google.com/spreadsheets/d/..."}" />${rosterSourceType === "xlsx" ? '<button class="secondary compact" id="browse-roster">Browse</button>' : ""}</div></label><label>Worksheet <input id="sheet" value="${escapeHtml(rosterSheetName || "Members")}" /></label><button class="primary" id="load" ${rosterStatus === "loading" ? "disabled" : ""}>Load roster <span>→</span></button>${
+      rosterStatus !== "idle" ? `<div class="status-panel status-${rosterStatus}"><div class="status-content">${
+        rosterStatus === "loading" ? '<span class="spinner">⟳</span> <span>Loading roster...</span>' : 
+        rosterStatus === "success" ? `<span class="icon">✓</span> <span><strong>${rosterStatusMessage}</strong>${
+          rosterWarnings.length || rosterLoadedAt ? `<div class="status-meta">${rosterLoadedAt ? `Last loaded: ${getTimeAgo(rosterLoadedAt)}` : ""}</div>${
+            rosterWarnings.length ? `<div class="status-warnings">${rosterWarnings.map(w => `<div>⚠ ${escapeHtml(w)}</div>`).join("")}</div>` : ""
+          }` : ""
+        }</span>` :
+        `<span class="icon">✗</span> <span><strong>Error:</strong> ${escapeHtml(rosterStatusMessage)}</span>`
+      }</div></div>` : ""
+    }</div></div>`;
+  }
 
   if (activeTab === "import") return `<div class="intro"><span class="eyebrow">02 / captures</span><h2>Bring the week into focus.</h2><p>Add screenshots or a folder. Cached captures stay local and skip another request.</p><div class="panel form-panel"><div class="button-row"><button class="primary" id="browse-images">Choose screenshots <span>→</span></button><button class="secondary" id="browse-folder">Choose folder</button></div><label>Selected paths <textarea id="screenshots" placeholder="Or paste one absolute path per line">${escapeHtml(state.screenshots.join("\n"))}</textarea></label><div class="button-row"><button class="primary" id="add">Add screenshots <span>→</span></button><button class="secondary" id="extract" ${extractionStatus === "running" ? "disabled" : ""}>${extractionStatus === "running" ? `Extracting ${extractionProgress.completed}/${extractionProgress.total}` : `Extract ${state.summary.screenshotCount || "all"}`}</button>${extractionStatus === "running" ? '<button class="secondary" id="cancel">Cancel</button>' : ""}</div><div class="queue">${state.screenshots.length ? state.screenshots.map((path) => `<div><span class="file-dot"></span>${escapeHtml(path.split(/[\\/]/).pop() ?? path)}</div>`).join("") : "No screenshots queued yet."}</div></div></div>`;
   if (activeTab === "review") {
@@ -184,28 +210,61 @@ function wireActions(): void {
       render();
     } catch (error) { window.alert(error instanceof Error ? error.message : String(error)); }
   });
+  const rosterInput = document.querySelector<HTMLInputElement>("#roster");
+  if (rosterInput) {
+    rosterInput.addEventListener("input", () => {
+      const val = rosterInput.value;
+      if (rosterSourceType === "xlsx") {
+        rosterXlsxPath = val;
+        localStorage.setItem("lastwar_roster_xlsx_path", val);
+      } else {
+        rosterGoogleSheetUrl = val;
+        localStorage.setItem("lastwar_roster_google_url", val);
+      }
+    });
+  }
+  const sheetInput = document.querySelector<HTMLInputElement>("#sheet");
+  if (sheetInput) {
+    sheetInput.addEventListener("input", () => {
+      rosterSheetName = sheetInput.value;
+      localStorage.setItem("lastwar_roster_sheet_name", rosterSheetName);
+    });
+  }
   document.querySelector<HTMLButtonElement>("#source-xlsx")?.addEventListener("click", () => {
+    syncRosterInputsFromDOM();
     rosterSourceType = "xlsx";
+    localStorage.setItem("lastwar_roster_source_type", "xlsx");
     render();
   });
   document.querySelector<HTMLButtonElement>("#source-google")?.addEventListener("click", () => {
+    syncRosterInputsFromDOM();
     rosterSourceType = "google_sheet";
+    localStorage.setItem("lastwar_roster_source_type", "google_sheet");
     render();
   });
   document.querySelector<HTMLButtonElement>("#browse-roster")?.addEventListener("click", async () => {
     const selected = await open({ multiple: false, directory: false, filters: [{ name: "Excel workbook", extensions: ["xlsx"] }] });
-    if (typeof selected === "string") { rosterPath = selected; render(); }
+    if (typeof selected === "string") {
+      rosterXlsxPath = selected;
+      localStorage.setItem("lastwar_roster_xlsx_path", selected);
+      render();
+    }
   });
   document.querySelector<HTMLButtonElement>("#load")?.addEventListener("click", async () => {
-    const source = document.querySelector<HTMLInputElement>("#roster")?.value.trim();
+    syncRosterInputsFromDOM();
+    const source = (rosterSourceType === "xlsx" ? rosterXlsxPath : rosterGoogleSheetUrl).trim();
     if (!source) return;
-    rosterPath = source;
+    const sheetName = (rosterSheetName || "Members").trim() || "Members";
     rosterStatus = "loading";
     rosterStatusMessage = "";
     rosterWarnings = [];
     render();
     try {
-      state = await client.request<AppState>("load_members", { sourceType: rosterSourceType, source, sheetName: document.querySelector<HTMLInputElement>("#sheet")?.value || "Members" });
+      state = await client.request<AppState>("load_members", {
+        sourceType: rosterSourceType,
+        source,
+        sheetName,
+      });
       rosterStatus = "success";
       rosterStatusMessage = `Loaded ${state.summary.memberCount} members from ${state.memberSource}`;
       rosterWarnings = state.memberWarnings;
@@ -298,6 +357,22 @@ async function connectBackend(): Promise<void> {
   try {
     state = await client.request<AppState>("get_state");
     backendStatus = "ready";
+    if (state.config.rosterSourceType) {
+      rosterSourceType = state.config.rosterSourceType;
+      localStorage.setItem("lastwar_roster_source_type", rosterSourceType);
+    }
+    if (state.config.rosterXlsxPath) {
+      rosterXlsxPath = state.config.rosterXlsxPath;
+      localStorage.setItem("lastwar_roster_xlsx_path", rosterXlsxPath);
+    }
+    if (state.config.rosterGoogleSheetUrl) {
+      rosterGoogleSheetUrl = state.config.rosterGoogleSheetUrl;
+      localStorage.setItem("lastwar_roster_google_url", rosterGoogleSheetUrl);
+    }
+    if (state.config.rosterSheetName) {
+      rosterSheetName = state.config.rosterSheetName;
+      localStorage.setItem("lastwar_roster_sheet_name", rosterSheetName);
+    }
   } catch (error) {
     backendStatus = "error";
     backendError = error instanceof Error ? error.message : String(error);

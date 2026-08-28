@@ -75,6 +75,10 @@ class WorkflowService:
         self.api_style = "responses"
         self.requests_per_minute = 28
         self.use_cache = True
+        self.roster_source_type = "xlsx"
+        self.roster_xlsx_path = ""
+        self.roster_google_sheet_url = ""
+        self.roster_sheet_name = "Members"
         self._apply_config({**_env_config(), **self._load_saved_config()})
         self._extraction_thread: threading.Thread | None = None
         self._cancel_event: threading.Event | None = None
@@ -100,6 +104,10 @@ class WorkflowService:
                 "apiStyle": self.api_style,
                 "requestsPerMinute": self.requests_per_minute,
                 "useCache": self.use_cache,
+                "rosterSourceType": self.roster_source_type,
+                "rosterXlsxPath": self.roster_xlsx_path,
+                "rosterGoogleSheetUrl": self.roster_google_sheet_url,
+                "rosterSheetName": self.roster_sheet_name,
             }, indent=2),
             encoding="utf-8",
         )
@@ -119,6 +127,16 @@ class WorkflowService:
         self.requests_per_minute = rpm
         self.use_cache = bool(payload.get("useCache", self.use_cache))
 
+        roster_source_type = str(payload.get("rosterSourceType", self.roster_source_type)).strip().casefold()
+        if roster_source_type in {"xlsx", "google_sheet"}:
+            self.roster_source_type = roster_source_type
+        if "rosterXlsxPath" in payload:
+            self.roster_xlsx_path = str(payload.get("rosterXlsxPath", self.roster_xlsx_path)).strip()
+        if "rosterGoogleSheetUrl" in payload:
+            self.roster_google_sheet_url = str(payload.get("rosterGoogleSheetUrl", self.roster_google_sheet_url)).strip()
+        if "rosterSheetName" in payload:
+            self.roster_sheet_name = str(payload.get("rosterSheetName", self.roster_sheet_name)).strip() or "Members"
+
     def set_config(self, payload: dict[str, Any]) -> dict[str, Any]:
         if self.extracting:
             raise RuntimeError("Cannot change configuration during extraction")
@@ -127,13 +145,22 @@ class WorkflowService:
         return self.snapshot()
 
     def load_members(self, source_type: str, source: str, sheet_name: str = "Members") -> dict[str, Any]:
+        source = str(source).strip()
+        sheet_name = str(sheet_name).strip() or "Members"
         if source_type == "xlsx":
-            result = load_members_from_xlsx(Path(source), sheet_name or "Members")
+            result = load_members_from_xlsx(Path(source), sheet_name)
+            self.roster_source_type = "xlsx"
+            self.roster_xlsx_path = source
+            self.roster_sheet_name = sheet_name
         elif source_type == "google_sheet":
-            result = load_members_from_google_sheet(source, sheet_name or "Members")
+            result = load_members_from_google_sheet(source, sheet_name)
+            self.roster_source_type = "google_sheet"
+            self.roster_google_sheet_url = source
+            self.roster_sheet_name = sheet_name
         else:
             raise ValueError("source_type must be 'xlsx' or 'google_sheet'")
         self._apply_member_result(result)
+        self._save_config()
         return self.snapshot()
 
     def add_screenshots(self, raw_paths: list[str]) -> dict[str, Any]:
@@ -334,6 +361,10 @@ class WorkflowService:
             "apiKeyPresent": bool(api_key),
             "apiKeyHint": _mask_secret(api_key) if api_key else "",
             "apiKeyRequired": not _is_local_endpoint(self.base_url),
+            "rosterSourceType": self.roster_source_type,
+            "rosterXlsxPath": self.roster_xlsx_path,
+            "rosterGoogleSheetUrl": self.roster_google_sheet_url,
+            "rosterSheetName": self.roster_sheet_name,
         }
 
     def _apply_member_result(self, result: MemberLoadResult) -> None:

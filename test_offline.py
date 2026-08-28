@@ -10,6 +10,7 @@ from extractor import extract_many
 from matcher import MemberMatcher, build_weekly_data, observations_from_extractions
 from members import Member, load_members_from_google_sheet, load_members_from_xlsx
 from avatars import AvatarStore, fingerprint_from_bbox
+from backend.service import WorkflowService
 from storage import AliasStore
 from excel_export import export_weekly_workbook
 
@@ -199,6 +200,47 @@ def test_conflicting_day_index_becomes_zero_confidence():
     fixed = extractor._sanitize_model_payload(payload)
     assert fixed["day_confidence"] == 0.0
     assert any("conflicting" in w for w in fixed["warnings"])
+
+
+def test_workflow_service_remembers_roster_paths():
+    with TemporaryDirectory(ignore_cleanup_errors=True) as td:
+        app_dir = Path(td) / "app_data"
+        service = WorkflowService(app_dir)
+        service.set_config({
+            "rosterSourceType": "google_sheet",
+            "rosterXlsxPath": "C:/path/to/roster.xlsx",
+            "rosterGoogleSheetUrl": "https://docs.google.com/spreadsheets/d/test123",
+            "rosterSheetName": "Roster2026",
+        })
+        snap = service.snapshot()
+        assert snap["config"]["rosterSourceType"] == "google_sheet"
+        assert snap["config"]["rosterXlsxPath"] == "C:/path/to/roster.xlsx"
+        assert snap["config"]["rosterGoogleSheetUrl"] == "https://docs.google.com/spreadsheets/d/test123"
+        assert snap["config"]["rosterSheetName"] == "Roster2026"
+
+        # Reinstantiate WorkflowService to simulate next session
+        next_session = WorkflowService(app_dir)
+        next_snap = next_session.snapshot()
+        assert next_snap["config"]["rosterSourceType"] == "google_sheet"
+        assert next_snap["config"]["rosterXlsxPath"] == "C:/path/to/roster.xlsx"
+        assert next_snap["config"]["rosterGoogleSheetUrl"] == "https://docs.google.com/spreadsheets/d/test123"
+        assert next_snap["config"]["rosterSheetName"] == "Roster2026"
+
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "Members"
+        ws.append(["ID", "Name", "Rank"])
+        ws.append([201, "Test User", "Member"])
+        wb_path = Path(td) / "test_roster.xlsx"
+        wb.save(wb_path)
+        wb.close()
+
+        next_session.load_members("xlsx", str(wb_path), "Members")
+        session3 = WorkflowService(app_dir)
+        snap3 = session3.snapshot()
+        assert snap3["config"]["rosterSourceType"] == "xlsx"
+        assert snap3["config"]["rosterXlsxPath"] == str(wb_path)
+        assert snap3["config"]["rosterGoogleSheetUrl"] == "https://docs.google.com/spreadsheets/d/test123"
 
 
 def main():

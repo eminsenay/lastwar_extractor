@@ -12,6 +12,10 @@ export interface AppConfig {
   apiKeyPresent: boolean;
   apiKeyHint: string;
   apiKeyRequired: boolean;
+  rosterSourceType?: "xlsx" | "google_sheet";
+  rosterXlsxPath?: string;
+  rosterGoogleSheetUrl?: string;
+  rosterSheetName?: string;
 }
 
 export interface Member {
