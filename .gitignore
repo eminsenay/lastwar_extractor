@@ -45,6 +45,13 @@ Thumbs.db
 *.egg-info/
 .eggs/
 
+# TypeScript / Tauri build outputs
+node_modules/
+frontend/node_modules/
+frontend/dist/
+src-tauri/target/
+src-tauri/binaries/*.exe
+
 # Temporary files
 *.tmp
 *.bak

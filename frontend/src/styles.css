@@ -1,0 +1,58 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+
+:root { color: #17231f; background: #e9eee9; font-family: 'Space Grotesk', sans-serif; font-synthesis: none; }
+* { box-sizing: border-box; }
+body { margin: 0; min-width: 320px; background: radial-gradient(circle at 90% 0%, #d4e3d8 0, transparent 35%), #e9eee9; }
+button, input, textarea { font: inherit; }
+button { cursor: pointer; }
+.shell { max-width: 1180px; min-height: 100vh; margin: 0 auto; padding: 34px 42px 70px; }
+.topbar { display: flex; justify-content: space-between; align-items: end; border-bottom: 1px solid #b9c8bd; padding-bottom: 28px; }
+.kicker, .eyebrow { color: #668071; font: 500 11px 'DM Mono', monospace; letter-spacing: .08em; text-transform: uppercase; }
+h1, h2, h3, p { margin: 0; } h1 { font-size: clamp(28px, 4vw, 48px); letter-spacing: -1.5px; line-height: 1; margin-top: 12px; } h2 { font-size: clamp(30px, 5vw, 62px); letter-spacing: -2px; line-height: .98; max-width: 680px; margin: 20px 0; } h3 { font-size: 20px; margin: 7px 0; }
+.connection { color: #557064; font: 12px 'DM Mono', monospace; }.dot, .file-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #78a56f; margin-right: 8px; }
+.connection-connecting .dot { background: #d9a441; }
+.connection-error { color: #c62828; }
+.connection-error .dot { background: #f44336; }
+.counter-error { color: #c62828; font-weight: 600; }
+.form-panel select { width: 100%; border: 0; border-bottom: 1px solid #afc0b3; background: transparent; padding: 10px 0; color: #17231f; outline: 0; }
+.form-panel select:focus { border-color: #17231f; }
+.form-panel label.remember-alias { display: flex; align-items: center; gap: 10px; font: 13px 'DM Mono', monospace; text-transform: none; }
+.status-panel code { padding: 1px 5px; border-radius: 3px; background: rgba(0, 0, 0, 0.07); font: 12px 'DM Mono', monospace; }
+.issues-panel { margin: 12px 0; padding: 10px 14px; background: #fff8e6; border-left: 4px solid #d9a441; border-radius: 4px; font-size: 13px; }
+.issues-panel summary { cursor: pointer; color: #8a6d1f; font-weight: 600; }
+.issues-panel ul { margin: 10px 0 0; padding-left: 18px; max-height: 220px; overflow-y: auto; }
+.issues-panel li { margin-bottom: 6px; line-height: 1.45; word-break: break-word; }
+.issues-panel li.issue-error { color: #c62828; font-weight: 600; }
+.steps { display: flex; gap: 10px; padding: 24px 0 30px; }.step { display: flex; gap: 10px; align-items: center; border: 0; background: transparent; color: #799087; padding: 8px 0; margin-right: 24px; }.step span { font: 11px 'DM Mono', monospace; }.step strong { font-size: 14px; }.step.active { color: #17231f; border-bottom: 2px solid #17231f; }
+.workspace { min-height: 550px; }.intro { padding: 50px 4px; }.intro p { color: #60756a; max-width: 530px; line-height: 1.6; }.panel { background: #f7faf6; border: 1px solid #cfdbd1; box-shadow: 12px 12px 0 #d5e1d7; }.form-panel { display: grid; gap: 20px; max-width: 620px; margin-top: 40px; padding: 28px; }.form-panel label { display: grid; gap: 9px; color: #5e7568; font: 11px 'DM Mono', monospace; text-transform: uppercase; }.form-panel input { width: 100%; border: 0; border-bottom: 1px solid #afc0b3; background: transparent; padding: 10px 0; color: #17231f; outline: 0; }.form-panel input:focus { border-color: #17231f; }.primary, .secondary { border: 0; padding: 14px 18px; text-align: left; font-weight: 600; }.primary { color: #f4f7f2; background: #17231f; }.primary span { float: right; font-size: 20px; line-height: 14px; }.secondary { background: #dce8dd; color: #294236; }.button-row { display: flex; gap: 10px; }.queue { display: grid; gap: 10px; border-top: 1px solid #d0dbd1; padding-top: 15px; color: #72857a; font: 12px 'DM Mono', monospace; }.queue div { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }.review-head { display: flex; justify-content: space-between; align-items: end; margin: 30px 0; }.counter { color: #9c593d; font: 12px 'DM Mono', monospace; }.review-list { display: grid; gap: 8px; max-width: 900px; }.review-item { display: flex; justify-content: space-between; gap: 20px; align-items: center; padding: 20px 22px; border-left: 3px solid #9ab5a1; background: #f7faf6; }.review-item.needs-review { border-color: #c27b55; }.review-item p { color: #778a7e; font-size: 13px; }.review-item strong { font-size: 14px; }.empty { color: #72857a; padding: 35px 0; }.metric-grid { display: flex; gap: 10px; margin: 42px 0 28px; }.metric-grid div { min-width: 150px; padding: 20px; background: #f7faf6; border: 1px solid #cfdbd1; }.metric-grid span { display: block; color: #71847a; font: 11px 'DM Mono', monospace; text-transform: uppercase; }.metric-grid strong { display: block; font-size: 35px; margin-top: 12px; }.metric-grid .warning strong { color: #a85f40; }
+.form-panel textarea { min-height: 80px; resize: vertical; border: 1px solid #afc0b3; padding: 10px; background: transparent; color: #17231f; outline: 0; }
+.input-row { display: flex; gap: 12px; align-items: center; }.input-row input { flex: 1; }.compact { padding: 9px 12px; }
+.source-toggle { display: flex; gap: 4px; padding: 4px; background: #e2ebe3; }.source-option { flex: 1; border: 0; background: transparent; color: #6d8174; padding: 11px 12px; font-size: 13px; font-weight: 600; }.source-option.selected { background: #17231f; color: #f4f7f2; }
+.review-controls { display: flex; gap: 12px; align-items: center; justify-content: space-between; }
+.modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+.modal-panel { background: #f7faf6; border: 2px solid #17231f; padding: 24px; max-width: 500px; width: 90%; max-height: 80vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
+.modal-panel h3 { margin: 0 0 8px; font-size: 18px; }
+.modal-panel h4 { margin: 16px 0 8px; font-size: 14px; font-weight: 600; text-transform: uppercase; color: #71847a; }
+.alternatives { margin: 16px 0; }
+.alternative-option, .search-result { display: block; width: 100%; text-align: left; padding: 10px 12px; margin: 4px 0; border: 1px solid #cfdbd1; background: transparent; cursor: pointer; font-size: 14px; }
+.alternative-option:hover, .search-result:hover { background: #e2ebe3; border-color: #17231f; }
+.member-search { margin: 16px 0; }
+.member-search input { width: 100%; padding: 10px; border: 1px solid #afc0b3; background: transparent; color: #17231f; outline: 0; }
+.member-search input:focus { border-color: #17231f; }
+.search-results { border: 1px solid #cfdbd1; max-height: 150px; overflow-y: auto; margin-top: 8px; }
+.remember-alias { display: flex; gap: 8px; align-items: center; margin: 16px 0; font-size: 14px; cursor: pointer; }
+.remember-alias input { cursor: pointer; }
+.modal-actions { display: flex; gap: 10px; margin-top: 20px; }
+.status-panel { margin-top: 20px; padding: 14px 16px; border-radius: 4px; border-left: 4px solid #999; font-size: 14px; line-height: 1.5; }
+.status-panel.status-loading { background: #e3f2fd; border-left-color: #2196f3; color: #1565c0; }
+.status-panel.status-success { background: #e8f5e9; border-left-color: #4caf50; color: #2e7d32; }
+.status-panel.status-error { background: #ffebee; border-left-color: #f44336; color: #c62828; }
+.status-content { display: flex; align-items: flex-start; gap: 12px; min-width: 0; }
+.status-content .icon, .status-content .spinner { flex-shrink: 0; font-weight: 600; min-width: 20px; }
+.status-content .spinner { animation: spin 1s linear infinite; display: inline-block; }
+.status-content span:last-child { min-width: 0; word-break: break-word; overflow-wrap: break-word; }
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+.status-meta { font-size: 12px; opacity: 0.8; margin-top: 6px; font-style: italic; }
+.status-warnings { font-size: 12px; margin-top: 8px; opacity: 0.9; }
+.status-warnings div { margin: 4px 0; }
+@media (max-width: 650px) { .shell { padding: 22px 18px 50px; }.topbar { align-items: start; gap: 20px; flex-direction: column; }.steps { overflow-x: auto; }.step { margin-right: 10px; white-space: nowrap; }.intro { padding-top: 25px; }.form-panel { box-shadow: 7px 7px 0 #d5e1d7; }.button-row, .metric-grid { flex-direction: column; }.metric-grid div { min-width: 0; }.review-item { align-items: start; flex-direction: column; gap: 12px; } }

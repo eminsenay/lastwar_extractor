@@ -134,6 +134,81 @@ Windows users can also use:
 run.bat
 ```
 
+## Tauri development path
+
+The migration foundation includes a Tauri v2 shell and a TypeScript frontend.
+The existing PySide6 application remains available while the new path is
+completed. The Python backend is intended to run as a bundled sidecar and
+communicates with the frontend over newline-delimited JSON on stdin/stdout.
+
+Prerequisites for the Tauri path are Node.js, Rust, Inno Setup, and the WebView2 runtime.
+From the repository root, install frontend dependencies and start the Vite
+frontend with:
+
+```powershell
+cd frontend
+npm install
+npm run dev
+```
+
+The native shell will be enabled after the Python sidecar is staged at
+`src-tauri/binaries/lastwar-backend-<target-triple>.exe`. Build scripts and
+PyInstaller staging will be added as the protocol and frontend reach parity
+with the legacy application.
+
+The Vite browser preview is useful for checking layout only; it cannot start
+the Python sidecar or load a roster. Use the Tauri desktop application to load
+either a local Excel workbook or a Google Sheets URL.
+
+The sidecar continues to use the existing app-data database at
+`%USERPROFILE%\.lastwar_weekly_extractor\app.sqlite3`, preserving aliases,
+avatar references, and extraction cache data. API credentials remain in the
+Python process environment or `.env`; they are not passed through frontend
+state.
+
+### Settings tab
+
+The desktop app has a **Settings** tab for the endpoint configuration:
+
+| Field | Environment default |
+| --- | --- |
+| Base URL | `OPENAI_BASE_URL` |
+| Model | `OPENAI_MODEL` |
+| API style | `OPENAI_API_STYLE` (`responses` or `chat`) |
+| Requests per minute | `OPENAI_RPM` |
+
+Values entered there are saved to
+`%USERPROFILE%\.lastwar_weekly_extractor\config.json` and reused on the next
+launch. The environment supplies the defaults when no saved value exists, so a
+`.env` alone is enough to configure the app.
+
+The **API key is deliberately not editable in the UI**. It is read from
+`OPENAI_API_KEY` in the process environment or `.env` at startup, and only a
+masked hint is ever shown so the key is never persisted in app state or
+settings files. Local `localhost` / `127.0.0.1` endpoints need no key.
+
+Changing the model, base URL, or API style starts a fresh extraction cache,
+because those values are part of the cache key.
+
+To build the Windows application and installer after installing the
+prerequisites, run from the repository root:
+
+```powershell
+./build_tauri_windows.bat
+```
+
+The script builds the PyInstaller sidecar, stages the architecture-specific
+binary, builds the TypeScript frontend, invokes Tauri without its built-in
+installer bundler, and runs Inno Setup using
+`installer\LastWarWeeklyExtractor.iss`. The application binary is written to
+`src-tauri\target\release`; the installer is written to
+`dist\installer\LastWarWeeklyExtractor-Setup.exe`.
+
+Inno Setup must provide `ISCC.exe` on `PATH`. The installer places the Tauri
+application in Program Files and the Python sidecar at `binaries\`, which is
+the resource layout expected by the Tauri shell. WebView2 is currently a
+prerequisite rather than an installer-managed dependency.
+
 ## Typical workflow
 
 ### 1. Setup

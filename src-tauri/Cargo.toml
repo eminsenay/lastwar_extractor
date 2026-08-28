@@ -1,0 +1,21 @@
+[package]
+name = "lastwar-weekly-extractor"
+version = "0.1.0"
+description = "Last War weekly leaderboard extractor"
+authors = ["Last War Tools"]
+edition = "2021"
+
+[lib]
+name = "lastwar_weekly_extractor_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-dialog = "2"
+tauri-plugin-shell = "2"
+
+[features]
+custom-protocol = ["tauri/custom-protocol"]
