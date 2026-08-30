@@ -1,7 +1,7 @@
 export const PROTOCOL_VERSION = 1;
 
 export type SourceType = "xlsx" | "google_sheet";
-export type WorkflowTab = "setup" | "import" | "review" | "export" | "settings";
+export type WorkflowTab = "settings" | "setup" | "import" | "review" | "export";
 
 export interface AppConfig {
   model: string;

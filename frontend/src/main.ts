@@ -4,7 +4,7 @@ import { BackendClient } from "./lib/backendClient";
 import type { AppState, EventEnvelope, Observation, WorkflowTab } from "./types/protocol";
 
 const client = new BackendClient();
-let activeTab: WorkflowTab = "setup";
+let activeTab: WorkflowTab = "settings";
 let rosterSourceType: "xlsx" | "google_sheet" =
   (localStorage.getItem("lastwar_roster_source_type") as "xlsx" | "google_sheet") || "xlsx";
 let rosterXlsxPath = localStorage.getItem("lastwar_roster_xlsx_path") || "";
@@ -55,9 +55,9 @@ function syncRosterInputsFromDOM(): void {
 
 function render(): void {
   const steps: [WorkflowTab, string, string][] = [
-    ["setup", "01", "Roster"], ["import", "02", "Screenshots"],
-    ["review", "03", "Review"], ["export", "04", "Export"],
-    ["settings", "05", "Settings"],
+    ["settings", "01", "Settings"], ["setup", "02", "Roster"],
+    ["import", "03", "Screenshots"], ["review", "04", "Review"],
+    ["export", "05", "Export"],
   ];
   app.innerHTML = `
     <main class="shell">
@@ -85,49 +85,11 @@ function render(): void {
 }
 
 function renderTab(): string {
-  if (activeTab === "setup") {
-    const currentPath = rosterSourceType === "xlsx" ? rosterXlsxPath : rosterGoogleSheetUrl;
-    return `<div class="intro"><span class="eyebrow">01 / roster</span><h2>Start with the source of truth.</h2><p>Load the active member roster before importing leaderboard captures.</p><div class="panel form-panel"><div class="source-toggle" role="group" aria-label="Roster source"><button class="source-option ${rosterSourceType === "xlsx" ? "selected" : ""}" id="source-xlsx">Local Excel</button><button class="source-option ${rosterSourceType === "google_sheet" ? "selected" : ""}" id="source-google">Google Sheet URL</button></div><label>${rosterSourceType === "xlsx" ? "Roster file" : "Google Sheet URL"} <div class="input-row"><input id="roster" value="${escapeHtml(currentPath)}" placeholder="${rosterSourceType === "xlsx" ? "Path to .xlsx workbook" : "https://docs.google.com/spreadsheets/d/..."}" />${rosterSourceType === "xlsx" ? '<button class="secondary compact" id="browse-roster">Browse</button>' : ""}</div></label><label>Worksheet <input id="sheet" value="${escapeHtml(rosterSheetName || "Members")}" /></label><button class="primary" id="load" ${rosterStatus === "loading" ? "disabled" : ""}>Load roster <span>→</span></button>${
-      rosterStatus !== "idle" ? `<div class="status-panel status-${rosterStatus}"><div class="status-content">${
-        rosterStatus === "loading" ? '<span class="spinner">⟳</span> <span>Loading roster...</span>' : 
-        rosterStatus === "success" ? `<span class="icon">✓</span> <span><strong>${rosterStatusMessage}</strong>${
-          rosterWarnings.length || rosterLoadedAt ? `<div class="status-meta">${rosterLoadedAt ? `Last loaded: ${getTimeAgo(rosterLoadedAt)}` : ""}</div>${
-            rosterWarnings.length ? `<div class="status-warnings">${rosterWarnings.map(w => `<div>⚠ ${escapeHtml(w)}</div>`).join("")}</div>` : ""
-          }` : ""
-        }</span>` :
-        `<span class="icon">✗</span> <span><strong>Error:</strong> ${escapeHtml(rosterStatusMessage)}</span>`
-      }</div></div>` : ""
-    }</div></div>`;
-  }
-
-  if (activeTab === "import") return `<div class="intro"><span class="eyebrow">02 / captures</span><h2>Bring the week into focus.</h2><p>Add screenshots or a folder. Cached captures stay local and skip another request.</p><div class="panel form-panel"><div class="button-row"><button class="primary" id="browse-images">Choose screenshots <span>→</span></button><button class="secondary" id="browse-folder">Choose folder</button></div><label>Selected paths <textarea id="screenshots" placeholder="Or paste one absolute path per line">${escapeHtml(state.screenshots.join("\n"))}</textarea></label><div class="button-row"><button class="primary" id="add">Add screenshots <span>→</span></button><button class="secondary" id="extract" ${extractionStatus === "running" ? "disabled" : ""}>${extractionStatus === "running" ? `Extracting ${extractionProgress.completed}/${extractionProgress.total}` : `Extract ${state.summary.screenshotCount || "all"}`}</button>${extractionStatus === "running" ? '<button class="secondary" id="cancel">Cancel</button>' : ""}</div><div class="queue">${state.screenshots.length ? state.screenshots.map((path) => `<div><span class="file-dot"></span>${escapeHtml(path.split(/[\\/]/).pop() ?? path)}</div>`).join("") : "No screenshots queued yet."}</div></div></div>`;
-  if (activeTab === "review") {
-    const isUnresolved = (obs: Observation): boolean => !obs.matchedMemberId || obs.matchMethod === "needs_review";
-    const ordered = [...state.observations].sort(
-      (a, b) => Number(isUnresolved(b)) - Number(isUnresolved(a))
-    );
-    const reviewing = reviewingObservationId ? state.observations.find((o) => o.id === reviewingObservationId) : null;
-    return `<div class="review-head"><div><span class="eyebrow">03 / exceptions</span><h2>Resolve what needs a human.</h2></div><span class="counter">${
-      state.summary.failedFileCount ? `<span class="counter-error">${state.summary.failedFileCount} file${state.summary.failedFileCount === 1 ? "" : "s"} failed</span> · ` : ""
-    }${state.summary.observationCount} observations · ${state.summary.unmatchedCount} unresolved</span></div>${
-      state.issues.length ? `<details class="issues-panel"><summary>${state.issues.length} extraction note${state.issues.length === 1 ? "" : "s"}</summary><ul>${
-        state.issues.map((issue) => `<li class="${issue.includes("extraction failed") ? "issue-error" : ""}">${escapeHtml(issue)}</li>`).join("")
-      }</ul></details>` : ""
-    }<div class="review-list">${
-      ordered.length ? ordered.map((item) => `<article class="review-item ${item.matchedMemberId ? "" : "needs-review"}" data-observation="${escapeHtml(item.id)}"><div><span class="eyebrow">${item.day} · rank ${item.rank}</span><h3>${escapeHtml(item.rawName)}</h3><p>${item.points.toLocaleString()} points · ${item.matchMethod} (${(item.matchConfidence * 100).toFixed(0)}%)</p></div><div class="review-controls"><strong>${item.matchedMemberName ? escapeHtml(item.matchedMemberName) : "Unassigned"}</strong><button class="secondary compact" data-action="assign" data-id="${escapeHtml(item.id)}">${item.matchedMemberId ? "Reassign" : "Assign"}</button></div></article>`).join("")
-      : `<div class="empty">No observations yet. Extract screenshots on the Screenshots tab first.</div>`
-    }</div>${
-      reviewing ? `<div class="modal-overlay" id="assign-modal"><div class="modal-panel"><h3>Assign: ${escapeHtml(reviewing.rawName)}</h3><p>${reviewing.points} points · ${reviewing.day}</p><div class="alternatives"><h4>Suggestions</h4>${
-        reviewing.alternatives.length ? reviewing.alternatives.map((alt) => `<button class="alternative-option" data-member="${alt.memberId}"><strong>${escapeHtml(alt.name)}</strong> (${(alt.score * 100).toFixed(0)}%)</button>`).join("") : "<p>No suggestions.</p>"
-      }</div><div class="member-search"><input id="member-search" type="text" placeholder="Search members..." /><div id="search-results" class="search-results"></div></div><label class="remember-alias"><input type="checkbox" id="remember-alias" checked /> Remember as alias</label><div class="modal-actions"><button class="primary" id="confirm-assign">Assign</button><button class="secondary" id="cancel-assign">Cancel</button></div></div></div>` : ""
-    }`;
-  }
-  if (activeTab === "export") return `<div class="intro"><span class="eyebrow">04 / delivery</span><h2>Ready for the weekly workbook?</h2><p>Export only after the unresolved count and extraction warnings look intentional.</p><div class="metric-grid"><div><span>Members</span><strong>${state.summary.memberCount}</strong></div><div><span>Observations</span><strong>${state.summary.observationCount}</strong></div><div class="warning"><span>Unresolved</span><strong>${state.summary.unmatchedCount}</strong></div></div><button class="primary" id="export">Export workbook <span>→</span></button></div>`;
   if (activeTab === "settings") {
     const config = state.config;
-    return `<div class="intro"><span class="eyebrow">05 / endpoint</span><h2>Point the extractor at your model.</h2><p>Works with OpenAI, Siemens, or any OpenAI-compatible endpoint including local servers.</p><div class="panel form-panel">
-      <label>Base URL <input id="cfg-base-url" value="${escapeHtml(config.baseUrl)}" placeholder="https://api.siemens.com/llm/v1" /></label>
-      <label>Model <input id="cfg-model" value="${escapeHtml(config.model)}" placeholder="qwen-3.8-27b" /></label>
+    return `<div class="intro"><span class="eyebrow">01 / endpoint</span><h2>Point the extractor at your model.</h2><p>Works with OpenAI, or any OpenAI-compatible endpoint including local servers.</p><div class="panel form-panel">
+      <label>Base URL <input id="cfg-base-url" value="${escapeHtml(config.baseUrl)}" placeholder="https://api.openai.com/v1" /></label>
+      <label>Model <input id="cfg-model" value="${escapeHtml(config.model)}" placeholder="gpt-5.6-terra" /></label>
       <label>API style <select id="cfg-api-style">
         <option value="responses" ${config.apiStyle === "responses" ? "selected" : ""}>Responses API (OpenAI)</option>
         <option value="chat" ${config.apiStyle === "chat" ? "selected" : ""}>Chat Completions API (local / compatible)</option>
@@ -146,6 +108,45 @@ function renderTab(): string {
         : settingsStatus === "error" ? `<div class="status-panel status-error"><div class="status-content"><span class="icon">✗</span> <span>${escapeHtml(settingsMessage)}</span></div></div>` : ""
       }</div></div>`;
   }
+
+  if (activeTab === "setup") {
+    const currentPath = rosterSourceType === "xlsx" ? rosterXlsxPath : rosterGoogleSheetUrl;
+    return `<div class="intro"><span class="eyebrow">02 / roster</span><h2>Start with the source of truth.</h2><p>Load the active member roster before importing leaderboard captures.</p><div class="panel form-panel"><div class="source-toggle" role="group" aria-label="Roster source"><button class="source-option ${rosterSourceType === "xlsx" ? "selected" : ""}" id="source-xlsx">Local Excel</button><button class="source-option ${rosterSourceType === "google_sheet" ? "selected" : ""}" id="source-google">Google Sheet URL</button></div><label>${rosterSourceType === "xlsx" ? "Roster file" : "Google Sheet URL"} <div class="input-row"><input id="roster" value="${escapeHtml(currentPath)}" placeholder="${rosterSourceType === "xlsx" ? "Path to .xlsx workbook" : "https://docs.google.com/spreadsheets/d/..."}" />${rosterSourceType === "xlsx" ? '<button class="secondary compact" id="browse-roster">Browse</button>' : ""}</div></label><label>Worksheet <input id="sheet" value="${escapeHtml(rosterSheetName || "Members")}" /></label><button class="primary" id="load" ${rosterStatus === "loading" ? "disabled" : ""}>Load roster <span>→</span></button>${
+      rosterStatus !== "idle" ? `<div class="status-panel status-${rosterStatus}"><div class="status-content">${
+        rosterStatus === "loading" ? '<span class="spinner">⟳</span> <span>Loading roster...</span>' : 
+        rosterStatus === "success" ? `<span class="icon">✓</span> <span><strong>${rosterStatusMessage}</strong>${
+          rosterWarnings.length || rosterLoadedAt ? `<div class="status-meta">${rosterLoadedAt ? `Last loaded: ${getTimeAgo(rosterLoadedAt)}` : ""}</div>${
+            rosterWarnings.length ? `<div class="status-warnings">${rosterWarnings.map(w => `<div>⚠ ${escapeHtml(w)}</div>`).join("")}</div>` : ""
+          }` : ""
+        }</span>` :
+        `<span class="icon">✗</span> <span><strong>Error:</strong> ${escapeHtml(rosterStatusMessage)}</span>`
+      }</div></div>` : ""
+    }</div></div>`;
+  }
+
+  if (activeTab === "import") return `<div class="intro"><span class="eyebrow">03 / captures</span><h2>Bring the week into focus.</h2><p>Add screenshots or a folder. Cached captures stay local and skip another request.</p><div class="panel form-panel"><div class="button-row"><button class="primary" id="browse-images">Choose screenshots <span>→</span></button><button class="secondary" id="browse-folder">Choose folder</button></div><label>Selected paths <textarea id="screenshots" placeholder="Or paste one absolute path per line">${escapeHtml(state.screenshots.join("\n"))}</textarea></label><div class="button-row"><button class="primary" id="add">Add screenshots <span>→</span></button><button class="secondary" id="extract" ${extractionStatus === "running" ? "disabled" : ""}>${extractionStatus === "running" ? `Extracting ${extractionProgress.completed}/${extractionProgress.total}` : `Extract ${state.summary.screenshotCount || "all"}`}</button>${extractionStatus === "running" ? '<button class="secondary" id="cancel">Cancel</button>' : ""}</div><div class="queue">${state.screenshots.length ? state.screenshots.map((path) => `<div><span class="file-dot"></span>${escapeHtml(path.split(/[\\/]/).pop() ?? path)}</div>`).join("") : "No screenshots queued yet."}</div></div></div>`;
+  if (activeTab === "review") {
+    const isUnresolved = (obs: Observation): boolean => !obs.matchedMemberId || obs.matchMethod === "needs_review";
+    const ordered = [...state.observations].sort(
+      (a, b) => Number(isUnresolved(b)) - Number(isUnresolved(a))
+    );
+    const reviewing = reviewingObservationId ? state.observations.find((o) => o.id === reviewingObservationId) : null;
+    return `<div class="review-head"><div><span class="eyebrow">04 / exceptions</span><h2>Resolve what needs a human.</h2></div><span class="counter">${
+      state.summary.failedFileCount ? `<span class="counter-error">${state.summary.failedFileCount} file${state.summary.failedFileCount === 1 ? "" : "s"} failed</span> · ` : ""
+    }${state.summary.observationCount} observations · ${state.summary.unmatchedCount} unresolved</span></div>${
+      state.issues.length ? `<details class="issues-panel"><summary>${state.issues.length} extraction note${state.issues.length === 1 ? "" : "s"}</summary><ul>${
+        state.issues.map((issue) => `<li class="${issue.includes("extraction failed") ? "issue-error" : ""}">${escapeHtml(issue)}</li>`).join("")
+      }</ul></details>` : ""
+    }<div class="review-list">${
+      ordered.length ? ordered.map((item) => `<article class="review-item ${item.matchedMemberId ? "" : "needs-review"}" data-observation="${escapeHtml(item.id)}"><div><span class="eyebrow">${item.day} · rank ${item.rank}</span><h3>${escapeHtml(item.rawName)}</h3><p>${item.points.toLocaleString()} points · ${item.matchMethod} (${(item.matchConfidence * 100).toFixed(0)}%)</p></div><div class="review-controls"><strong>${item.matchedMemberName ? escapeHtml(item.matchedMemberName) : "Unassigned"}</strong><button class="secondary compact" data-action="assign" data-id="${escapeHtml(item.id)}">${item.matchedMemberId ? "Reassign" : "Assign"}</button></div></article>`).join("")
+      : `<div class="empty">No observations yet. Extract screenshots on the Screenshots tab first.</div>`
+    }</div>${
+      reviewing ? `<div class="modal-overlay" id="assign-modal"><div class="modal-panel"><h3>Assign: ${escapeHtml(reviewing.rawName)}</h3><p>${reviewing.points} points · ${reviewing.day}</p><div class="alternatives"><h4>Suggestions</h4>${
+        reviewing.alternatives.length ? reviewing.alternatives.map((alt) => `<button class="alternative-option" data-member="${alt.memberId}"><strong>${escapeHtml(alt.name)}</strong> (${(alt.score * 100).toFixed(0)}%)</button>`).join("") : "<p>No suggestions.</p>"
+      }</div><div class="member-search"><input id="member-search" type="text" placeholder="Search members..." /><div id="search-results" class="search-results"></div></div><label class="remember-alias"><input type="checkbox" id="remember-alias" checked /> Remember as alias</label><div class="modal-actions"><button class="primary" id="confirm-assign">Assign</button><button class="secondary" id="cancel-assign">Cancel</button></div></div></div>` : ""
+    }`;
+  }
+  if (activeTab === "export") return `<div class="intro"><span class="eyebrow">05 / delivery</span><h2>Ready for the weekly workbook?</h2><p>Export only after the unresolved count and extraction warnings look intentional.</p><div class="metric-grid"><div><span>Members</span><strong>${state.summary.memberCount}</strong></div><div><span>Observations</span><strong>${state.summary.observationCount}</strong></div><div class="warning"><span>Unresolved</span><strong>${state.summary.unmatchedCount}</strong></div></div><button class="primary" id="export">Export workbook <span>→</span></button></div>`;
   return "";
 }
 
