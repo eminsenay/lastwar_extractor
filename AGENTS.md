@@ -14,6 +14,12 @@ Start with the project docs in [README.md](README.md), then the runtime entry po
 - Configure environment: copy `.env.example` to `.env` and set `OPENAI_API_KEY`
 - Run desktop app: `python app.py`
 - Run CLI extractor: `python prototype_extract.py ./screenshots --output-dir ./output --rpm 28`
+- Development loop (Tauri desktop app):
+  - Frontend/UI dev mode: `cd frontend && npm run tauri:dev` (runs Vite HMR + Rust debug build)
+  - Rebuild Python sidecar only: `build_tauri_windows.bat --backend-only` (fast incremental rebuild & copy to `src-tauri\binaries\`)
+  - Build app without installer: `build_tauri_windows.bat --skip-installer`
+  - Full production release build & installer: `build_tauri_windows.bat`
+  - Legacy PySide6 standalone build: `build_windows.bat`
 
 ## Environment and configuration
 

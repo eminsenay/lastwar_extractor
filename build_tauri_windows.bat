@@ -30,16 +30,26 @@ if not defined ISCC (
 )
 
 echo Building Python sidecar...
-call ".venv\Scripts\python.exe" -m PyInstaller --noconfirm --clean --onefile --name lastwar-backend backend\runner.py
+call ".venv\Scripts\python.exe" -m PyInstaller --noconfirm lastwar-backend.spec
 if errorlevel 1 goto :error
 
 if not exist "src-tauri\binaries" mkdir "src-tauri\binaries"
 copy /Y "dist\lastwar-backend.exe" "src-tauri\binaries\lastwar-backend-x86_64-pc-windows-msvc.exe" >nul
 if errorlevel 1 goto :error
 
+if "%1"=="--backend-only" (
+    echo Backend built successfully.
+    exit /b 0
+)
+
 echo Building Tauri application...
 call "frontend\node_modules\.bin\tauri.cmd" build --no-bundle
 if errorlevel 1 goto :error
+
+if "%1"=="--skip-installer" (
+    echo Built application: src-tauri\target\release\lastwar-weekly-extractor.exe
+    exit /b 0
+)
 
 echo Building Inno Setup installer...
 call "%ISCC%" "installer\LastWarWeeklyExtractor.iss"
