@@ -44,11 +44,14 @@ def test_extract_many_retries_once_on_llm_failure():
                     return FakeResponse()
 
         original = extractor.make_client
+        original_sleep = extractor.time.sleep
         extractor.make_client = lambda api_key=None, base_url=None: FakeClient()
+        extractor.time.sleep = lambda delay: None
         try:
             results = extract_many([img], "gpt-test", requests_per_minute=1)
         finally:
             extractor.make_client = original
+            extractor.time.sleep = original_sleep
 
         assert len(results) == 1
         assert results[0].error is None
@@ -97,7 +100,7 @@ def test_google_sheet_download_cleanup():
 def test_avatar_assisted_matching():
     from PIL import Image, ImageDraw
 
-    with TemporaryDirectory() as td:
+    with TemporaryDirectory(ignore_cleanup_errors=True) as td:
         td_path = Path(td)
         # Create two screenshots with the same feature-rich central avatar but
         # different outer frames / image sizes.
@@ -243,31 +246,48 @@ def test_workflow_service_remembers_roster_paths():
         assert snap3["config"]["rosterGoogleSheetUrl"] == "https://docs.google.com/spreadsheets/d/test123"
 
 
-def main():
-    test_local_model_payload_sanitization()
-    test_conflicting_day_index_becomes_zero_confidence()
-    test_avatar_assisted_matching()
-    test_google_sheet_download_cleanup()
-    workbook = Path('/mnt/data/LastWar-1537-EfC-R4.xlsx')
-    loaded = load_members_from_xlsx(workbook)
-    assert len(loaded.members) == 100
-    assert all(m.rank.casefold() != 'left' for m in loaded.members)
-    assert any('184' in w for w in loaded.warnings)
-
-    extraction = SimpleNamespace(
-        detected_day='thursday',
-        rows=[
-            row(1, 164, 'Janninus', 360962392),
-            row(2, 41, 'Mookha', 305798489),
-            row(3, None, 'UnknownRenamedPlayer', 123456, .80),
-        ],
-        pinned_row=row(42, None, 'KingOfGondor', 77844315),
-        warnings=[]
-    )
-    result = SimpleNamespace(image_path=Path('sample.png'), extraction=extraction, error=None)
-
+def test_matching_and_workbook_export():
     with TemporaryDirectory() as td:
-        store = AliasStore(Path(td) / 'aliases.sqlite3')
+        td_path = Path(td)
+        workbook = td_path / 'roster.xlsx'
+        wb = Workbook()
+        ws = wb.active
+        ws.title = 'Members'
+        ws.append(['ID', 'Name', 'Rank'])
+        special_members = {
+            3: 'Alias Target',
+            5: 'KingOfGondor',
+            41: 'Mookha',
+            164: 'Janninus',
+        }
+        for member_id in range(1, 100):
+            if member_id not in special_members:
+                special_members[member_id] = f'Member {member_id}'
+        for member_id, name in special_members.items():
+            ws.append([member_id, name, 'Member'])
+        ws.append([184, 'Former Member', 'Left'])
+        ws.append([184, 'Older Former Member', 'Left'])
+        wb.save(workbook)
+        wb.close()
+
+        loaded = load_members_from_xlsx(workbook)
+        assert len(loaded.members) == 100
+        assert all(m.rank.casefold() != 'left' for m in loaded.members)
+        assert any('184' in w for w in loaded.warnings)
+
+        extraction = SimpleNamespace(
+            detected_day='thursday',
+            rows=[
+                row(1, 164, 'Janninus', 360962392),
+                row(2, 41, 'Mookha', 305798489),
+                row(3, None, 'UnknownRenamedPlayer', 123456, .80),
+            ],
+            pinned_row=row(42, None, 'KingOfGondor', 77844315),
+            warnings=[]
+        )
+        result = SimpleNamespace(image_path=Path('sample.png'), extraction=extraction, error=None)
+
+        store = AliasStore(td_path / 'aliases.sqlite3')
         matcher = MemberMatcher(loaded.members, store)
         obs, issues = observations_from_extractions([result])
         for o in obs:
@@ -282,7 +302,7 @@ def main():
         weekly = build_weekly_data(obs, loaded.members, issues)
         assert weekly.scores[(164, 'thursday')] == 360962392
         assert weekly.scores[(5, 'thursday')] == 77844315
-        out = Path(td) / 'weekly.xlsx'
+        out = td_path / 'weekly.xlsx'
         export_weekly_workbook(out, loaded.members, weekly, store, str(workbook))
         assert out.exists() and out.stat().st_size > 0
 
@@ -302,6 +322,18 @@ def main():
                 found = True
         assert found
 
+def main():
+    tests = [
+        test_extract_many_retries_once_on_llm_failure,
+        test_google_sheet_download_cleanup,
+        test_avatar_assisted_matching,
+        test_local_model_payload_sanitization,
+        test_conflicting_day_index_becomes_zero_confidence,
+        test_workflow_service_remembers_roster_paths,
+        test_matching_and_workbook_export,
+    ]
+    for test in tests:
+        test()
     print('offline tests passed')
 
 

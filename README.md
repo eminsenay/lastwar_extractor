@@ -128,6 +128,13 @@ Start the desktop application:
 python app.py
 ```
 
+Run the offline regression checks without API credentials or external files:
+
+```powershell
+python -m pytest -q test_offline.py
+python test_offline.py
+```
+
 Windows users can also use:
 
 ```bat
