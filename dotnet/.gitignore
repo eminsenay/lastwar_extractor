@@ -1,0 +1,9 @@
+## .NET / MAUI build artifacts
+[Bb]in/
+[Oo]bj/
+*.user
+restore.log
+
+## Rider / VS
+.vs/
+.idea/

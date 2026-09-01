@@ -1,0 +1,68 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
+
+		<OutputType>Exe</OutputType>
+		<RootNamespace>LastWarExtractor</RootNamespace>
+		<UseMaui>true</UseMaui>
+		<SingleProject>true</SingleProject>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<NoWarn>$(NoWarn);MVVMTK0045</NoWarn>
+
+		<!-- Enable XAML source generation for faster build times and improved performance.
+		     This generates C# code from XAML at compile time instead of runtime inflation.
+		     To disable, remove this line.
+		     For individual files, you can override by setting Inflator metadata:
+		       <MauiXaml Update="MyPage.xaml" Inflator="Default" /> (reverts to defaults: Runtime for Debug, XamlC for Release)
+		       <MauiXaml Update="MyPage.xaml" Inflator="Runtime" /> (force runtime inflation) -->
+		<MauiXamlInflator>SourceGen</MauiXamlInflator>
+
+		<!-- Display name -->
+		<ApplicationTitle>Last War Weekly Extractor</ApplicationTitle>
+
+		<!-- App Identifier -->
+		<ApplicationId>com.lastwar.weeklyextractor</ApplicationId>
+
+		<!-- Versions -->
+		<ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
+		<ApplicationVersion>1</ApplicationVersion>
+
+		<!-- Unpackaged desktop app -->
+		<WindowsPackageType>None</WindowsPackageType>
+
+		<SupportedOSPlatformVersion>10.0.17763.0</SupportedOSPlatformVersion>
+		<TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<!-- App Icon -->
+		<MauiIcon Include="Resources\AppIcon\appicon.svg" ForegroundFile="Resources\AppIcon\appiconfg.svg" Color="#17231F" />
+
+		<!-- Splash Screen -->
+		<MauiSplashScreen Include="Resources\Splash\splash.svg" Color="#17231F" BaseSize="128,128" />
+
+		<!-- Images -->
+		<MauiImage Include="Resources\Images\*" />
+		
+		<!-- Custom Fonts -->
+		<MauiFont Include="Resources\Fonts\*" />
+
+		<!-- Raw Assets (also remove the "Resources\Raw" prefix) -->
+		<MauiAsset Include="Resources\Raw\**" LogicalName="%(RecursiveDir)%(Filename)%(Extension)" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Microsoft.Maui.Controls" Version="$(MauiVersion)" />
+		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="10.0.0" />
+		<PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+		<PackageReference Include="OpenAI" Version="2.2.0" />
+		<PackageReference Include="ClosedXML" Version="0.104.2" />
+		<PackageReference Include="Microsoft.Data.Sqlite" Version="9.0.0" />
+		<PackageReference Include="OpenCvSharp4" Version="4.10.0.20241108" />
+		<PackageReference Include="OpenCvSharp4.runtime.win" Version="4.10.0.20241108" />
+		<PackageReference Include="SixLabors.ImageSharp" Version="3.1.11" />
+	</ItemGroup>
+
+</Project>

@@ -1,0 +1,281 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:LastWarExtractor.ViewModels"
+             x:Class="LastWarExtractor.Views.MainPage"
+             x:Name="PageRoot"
+             x:DataType="vm:MainViewModel"
+             BackgroundColor="{StaticResource BodyBg}">
+
+    <Grid>
+        <ScrollView>
+            <VerticalStackLayout Padding="42,28,42,60" Spacing="0" MaximumWidthRequest="1180" HorizontalOptions="Center">
+
+                <!-- Topbar -->
+                <Grid ColumnDefinitions="*,Auto" Padding="0,0,0,24">
+                    <VerticalStackLayout Spacing="4">
+                        <Label Text="LAST WAR / WEEKLY OPS" Style="{StaticResource Eyebrow}" />
+                        <Label Text="Score extraction desk" Style="{StaticResource H1}" />
+                    </VerticalStackLayout>
+                    <Label Grid.Column="1" VerticalOptions="End" Style="{StaticResource FieldLabel}"
+                           Text="Local desktop build" />
+                </Grid>
+                <BoxView HeightRequest="1" Color="{StaticResource LineColor}" />
+
+                <!-- Steps -->
+                <HorizontalStackLayout Spacing="6" Padding="0,20,0,26">
+                    <Button Text="01 Settings" Style="{StaticResource CompactButton}" Command="{Binding GoToCommand}" CommandParameter="0" />
+                    <Button Text="02 Roster" Style="{StaticResource CompactButton}" Command="{Binding GoToCommand}" CommandParameter="1" />
+                    <Button Text="03 Screenshots" Style="{StaticResource CompactButton}" Command="{Binding GoToCommand}" CommandParameter="2" />
+                    <Button Text="04 Review" Style="{StaticResource CompactButton}" Command="{Binding GoToCommand}" CommandParameter="3" />
+                    <Button Text="05 Export" Style="{StaticResource CompactButton}" Command="{Binding GoToCommand}" CommandParameter="4" />
+                </HorizontalStackLayout>
+
+                <!-- ===== Settings ===== -->
+                <VerticalStackLayout IsVisible="{Binding IsSettings}" Spacing="16">
+                    <Label Text="01 / ENDPOINT" Style="{StaticResource Eyebrow}" />
+                    <Label Text="Point the extractor at your model." Style="{StaticResource H2}" />
+                    <Label Text="Configure the LLM provider and enter your API key. The key is stored encrypted on this device." Style="{StaticResource Body}" />
+
+                    <Border Style="{StaticResource Card}" MaximumWidthRequest="640" HorizontalOptions="Start">
+                        <VerticalStackLayout Spacing="18">
+                            <VerticalStackLayout Spacing="6">
+                                <Label Text="LLM PROVIDER" Style="{StaticResource FieldLabel}" />
+                                <Border Style="{StaticResource InputShell}">
+                                    <Picker Style="{StaticResource FieldPicker}" ItemsSource="{Binding Providers}" SelectedItem="{Binding Provider}" />
+                                </Border>
+                            </VerticalStackLayout>
+                            <VerticalStackLayout Spacing="6">
+                                <Label Text="BASE URL" Style="{StaticResource FieldLabel}" />
+                                <Border Style="{StaticResource InputShell}">
+                                    <Entry Style="{StaticResource Field}" Text="{Binding BaseUrl}" IsEnabled="{Binding IsEndpointEditable}" Placeholder="https://api.openai.com/v1" />
+                                </Border>
+                            </VerticalStackLayout>
+                            <VerticalStackLayout Spacing="6">
+                                <Label Text="MODEL" Style="{StaticResource FieldLabel}" />
+                                <Border Style="{StaticResource InputShell}">
+                                    <Entry Style="{StaticResource Field}" Text="{Binding Model}" Placeholder="gpt-5.6-terra" />
+                                </Border>
+                            </VerticalStackLayout>
+                            <VerticalStackLayout Spacing="6">
+                                <Label Text="API STYLE" Style="{StaticResource FieldLabel}" />
+                                <Border Style="{StaticResource InputShell}">
+                                    <Picker Style="{StaticResource FieldPicker}" ItemsSource="{Binding ApiStyles}" SelectedItem="{Binding ApiStyle}" IsEnabled="{Binding IsEndpointEditable}" />
+                                </Border>
+                            </VerticalStackLayout>
+                            <VerticalStackLayout Spacing="6">
+                                <Label Text="REQUESTS PER MINUTE" Style="{StaticResource FieldLabel}" />
+                                <Border Style="{StaticResource InputShell}">
+                                    <Entry Style="{StaticResource Field}" Text="{Binding RequestsPerMinute}" Keyboard="Numeric" />
+                                </Border>
+                            </VerticalStackLayout>
+                            <HorizontalStackLayout Spacing="10">
+                                <CheckBox IsChecked="{Binding UseCache}" />
+                                <Label Text="Reuse cached extractions (skips repeat API calls)" Style="{StaticResource Body}" VerticalOptions="Center" />
+                            </HorizontalStackLayout>
+                            <VerticalStackLayout Spacing="6">
+                                <Label Text="API KEY" Style="{StaticResource FieldLabel}" />
+                                <Border Style="{StaticResource InputShell}">
+                                    <Entry Style="{StaticResource Field}" Text="{Binding ApiKey}" IsPassword="True" Placeholder="Paste your API key to store it securely" />
+                                </Border>
+                                <Label Text="{Binding ApiKeyStatus}" Style="{StaticResource Body}" />
+                            </VerticalStackLayout>
+                            <Button Text="Save settings" Style="{StaticResource PrimaryButton}" Command="{Binding SaveSettingsCommand}" />
+                            <Label Text="{Binding SettingsMessage}" Style="{StaticResource Body}" IsVisible="{Binding SettingsMessage, Converter={StaticResource NotEmpty}}" />
+                        </VerticalStackLayout>
+                    </Border>
+                </VerticalStackLayout>
+
+                <!-- ===== Roster ===== -->
+                <VerticalStackLayout IsVisible="{Binding IsRoster}" Spacing="16">
+                    <Label Text="02 / ROSTER" Style="{StaticResource Eyebrow}" />
+                    <Label Text="Start with the source of truth." Style="{StaticResource H2}" />
+                    <Label Text="Load the active member roster before extraction." Style="{StaticResource Body}" />
+
+                    <Border Style="{StaticResource Card}" MaximumWidthRequest="640" HorizontalOptions="Start">
+                        <VerticalStackLayout Spacing="18">
+                            <HorizontalStackLayout Spacing="4" BackgroundColor="{StaticResource ToggleBg}" Padding="4">
+                                <Button Text="Local Excel" Style="{StaticResource CompactButton}" Command="{Binding SelectXlsxSourceCommand}" />
+                                <Button Text="Google Sheet URL" Style="{StaticResource CompactButton}" Command="{Binding SelectGoogleSourceCommand}" />
+                            </HorizontalStackLayout>
+                            <VerticalStackLayout Spacing="6">
+                                <Label Text="SOURCE" Style="{StaticResource FieldLabel}" />
+                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                                    <Border Style="{StaticResource InputShell}">
+                                        <Entry Style="{StaticResource Field}" Text="{Binding RosterInput}" Placeholder="Path to .xlsx or Google Sheet URL" />
+                                    </Border>
+                                    <Button Grid.Column="1" Text="Browse" Style="{StaticResource CompactButton}" Command="{Binding BrowseRosterCommand}" IsVisible="{Binding IsXlsxSource}" />
+                                </Grid>
+                            </VerticalStackLayout>
+                            <VerticalStackLayout Spacing="6">
+                                <Label Text="WORKSHEET NAME" Style="{StaticResource FieldLabel}" />
+                                <Border Style="{StaticResource InputShell}">
+                                    <Entry Style="{StaticResource Field}" Text="{Binding SheetName}" Placeholder="Members" />
+                                </Border>
+                            </VerticalStackLayout>
+                            <Button Text="Load roster" Style="{StaticResource PrimaryButton}" Command="{Binding LoadRosterCommand}" />
+                            <ActivityIndicator IsRunning="{Binding RosterBusy}" IsVisible="{Binding RosterBusy}" HorizontalOptions="Start" />
+                            <Label Text="{Binding RosterMessage}" Style="{StaticResource Body}" IsVisible="{Binding RosterMessage, Converter={StaticResource NotEmpty}}" />
+                            <VerticalStackLayout BindableLayout.ItemsSource="{Binding RosterWarnings}" Spacing="4">
+                                <BindableLayout.ItemTemplate>
+                                    <DataTemplate x:DataType="x:String">
+                                        <Label Text="{Binding .}" FontSize="12" TextColor="{StaticResource WarningText}" />
+                                    </DataTemplate>
+                                </BindableLayout.ItemTemplate>
+                            </VerticalStackLayout>
+                        </VerticalStackLayout>
+                    </Border>
+                </VerticalStackLayout>
+
+                <!-- ===== Screenshots ===== -->
+                <VerticalStackLayout IsVisible="{Binding IsScreenshots}" Spacing="16">
+                    <Label Text="03 / CAPTURES" Style="{StaticResource Eyebrow}" />
+                    <Label Text="Bring the week into focus." Style="{StaticResource H2}" />
+                    <Label Text="Add leaderboard screenshots, then run extraction." Style="{StaticResource Body}" />
+
+                    <Border Style="{StaticResource Card}" MaximumWidthRequest="720" HorizontalOptions="Start">
+                        <VerticalStackLayout Spacing="18">
+                            <HorizontalStackLayout Spacing="10">
+                                <Button Text="Choose screenshots" Style="{StaticResource PrimaryButton}" Command="{Binding ChooseScreenshotsCommand}" />
+                                <Button Text="Choose folder" Style="{StaticResource SecondaryButton}" Command="{Binding ChooseFolderCommand}" />
+                            </HorizontalStackLayout>
+                            <Border Style="{StaticResource InputShell}" Padding="12,8">
+                                <Editor Text="{Binding PastedPaths}" Placeholder="Or paste one absolute path per line" HeightRequest="90" BackgroundColor="Transparent" TextColor="{StaticResource TextColor}" />
+                            </Border>
+                            <HorizontalStackLayout Spacing="10">
+                                <Button Text="Add screenshots" Style="{StaticResource SecondaryButton}" Command="{Binding AddScreenshotsCommand}" />
+                                <Button Text="{Binding ExtractButtonText}" Style="{StaticResource PrimaryButton}" Command="{Binding ExtractCommand}" IsEnabled="{Binding IsExtracting, Converter={StaticResource Invert}}" />
+                                <Button Text="Cancel" Style="{StaticResource SecondaryButton}" Command="{Binding CancelExtractionCommand}" IsVisible="{Binding IsExtracting}" />
+                            </HorizontalStackLayout>
+                            <ProgressBar Progress="{Binding ExtractionProgress}" IsVisible="{Binding IsExtracting}" ProgressColor="{StaticResource TextColor}" />
+                            <Label Text="{Binding ExtractionMessage}" Style="{StaticResource Body}" IsVisible="{Binding ExtractionMessage, Converter={StaticResource NotEmpty}}" />
+                            <BoxView HeightRequest="1" Color="{StaticResource LineColor}" />
+                            <VerticalStackLayout BindableLayout.ItemsSource="{Binding ScreenshotQueue}" Spacing="6">
+                                <BindableLayout.ItemTemplate>
+                                    <DataTemplate x:DataType="x:String">
+                                        <Label Text="{Binding .}" FontFamily="Consolas" FontSize="12" TextColor="{StaticResource Muted2}" />
+                                    </DataTemplate>
+                                </BindableLayout.ItemTemplate>
+                            </VerticalStackLayout>
+                        </VerticalStackLayout>
+                    </Border>
+                </VerticalStackLayout>
+
+                <!-- ===== Review ===== -->
+                <VerticalStackLayout IsVisible="{Binding IsReview}" Spacing="16">
+                    <Label Text="04 / EXCEPTIONS" Style="{StaticResource Eyebrow}" />
+                    <Label Text="Resolve what needs a human." Style="{StaticResource H2}" />
+
+                    <Border Style="{StaticResource Card}" IsVisible="{Binding Issues.Count, Converter={StaticResource CountToBool}}" BackgroundColor="{StaticResource WarningBg}" Stroke="{StaticResource ConnBusy}">
+                        <VerticalStackLayout BindableLayout.ItemsSource="{Binding Issues}" Spacing="4">
+                            <BindableLayout.ItemTemplate>
+                                <DataTemplate x:DataType="x:String">
+                                    <Label Text="{Binding .}" FontSize="12" TextColor="{StaticResource WarningText}" />
+                                </DataTemplate>
+                            </BindableLayout.ItemTemplate>
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <VerticalStackLayout BindableLayout.ItemsSource="{Binding Observations}" Spacing="8">
+                        <BindableLayout.ItemTemplate>
+                            <DataTemplate x:DataType="vm:ObservationItem">
+                                <Border BackgroundColor="{StaticResource PanelBg}" Stroke="{Binding AccentColor}" StrokeThickness="1" Padding="20,16">
+                                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="20">
+                                        <VerticalStackLayout Spacing="2">
+                                            <Label Text="{Binding Header}" Style="{StaticResource Eyebrow}" />
+                                            <Label Text="{Binding Name}" FontSize="18" FontAttributes="Bold" TextColor="{StaticResource TextColor}" />
+                                            <Label Text="{Binding Detail}" FontSize="13" TextColor="{StaticResource Muted2}" />
+                                        </VerticalStackLayout>
+                                        <HorizontalStackLayout Grid.Column="1" Spacing="12" VerticalOptions="Center">
+                                            <Label Text="{Binding Matched}" FontAttributes="Bold" TextColor="{StaticResource TextColor}" VerticalOptions="Center" />
+                                            <Button Text="{Binding AssignLabel}" Style="{StaticResource CompactButton}"
+                                                    Command="{Binding Source={x:Reference PageRoot}, Path=BindingContext.OpenAssignCommand}"
+                                                    CommandParameter="{Binding .}" />
+                                        </HorizontalStackLayout>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </BindableLayout.ItemTemplate>
+                    </VerticalStackLayout>
+                    <Label Text="No observations yet. Extract screenshots first." Style="{StaticResource Body}"
+                           IsVisible="{Binding Observations.Count, Converter={StaticResource CountToBool}, ConverterParameter=invert}" />
+                </VerticalStackLayout>
+
+                <!-- ===== Export ===== -->
+                <VerticalStackLayout IsVisible="{Binding IsExport}" Spacing="16">
+                    <Label Text="05 / DELIVERY" Style="{StaticResource Eyebrow}" />
+                    <Label Text="Ready for the weekly workbook?" Style="{StaticResource H2}" />
+
+                    <HorizontalStackLayout Spacing="10">
+                        <Border Style="{StaticResource Card}" MinimumWidthRequest="150">
+                            <VerticalStackLayout>
+                                <Label Text="MEMBERS" Style="{StaticResource FieldLabel}" />
+                                <Label Text="{Binding MemberCount}" FontSize="22" FontAttributes="Bold" TextColor="{StaticResource TextColor}" />
+                            </VerticalStackLayout>
+                        </Border>
+                        <Border Style="{StaticResource Card}" MinimumWidthRequest="150">
+                            <VerticalStackLayout>
+                                <Label Text="OBSERVATIONS" Style="{StaticResource FieldLabel}" />
+                                <Label Text="{Binding ObservationCount}" FontSize="22" FontAttributes="Bold" TextColor="{StaticResource TextColor}" />
+                            </VerticalStackLayout>
+                        </Border>
+                        <Border Style="{StaticResource Card}" MinimumWidthRequest="150">
+                            <VerticalStackLayout>
+                                <Label Text="UNRESOLVED" Style="{StaticResource FieldLabel}" />
+                                <Label Text="{Binding UnmatchedCount}" FontSize="22" FontAttributes="Bold" TextColor="{StaticResource ErrorText}" />
+                            </VerticalStackLayout>
+                        </Border>
+                    </HorizontalStackLayout>
+                    <Button Text="Export workbook" Style="{StaticResource PrimaryButton}" Command="{Binding ExportCommand}" />
+                    <Label Text="{Binding ExportMessage}" Style="{StaticResource Body}" IsVisible="{Binding ExportMessage, Converter={StaticResource NotEmpty}}" />
+                </VerticalStackLayout>
+
+            </VerticalStackLayout>
+        </ScrollView>
+
+        <!-- ===== Assign overlay ===== -->
+        <Grid IsVisible="{Binding AssignVisible}" BackgroundColor="#99000000">
+            <Border BackgroundColor="{StaticResource PanelBg}" Stroke="{StaticResource TextColor}" StrokeThickness="2"
+                    Padding="24" WidthRequest="520" MaximumHeightRequest="640"
+                    HorizontalOptions="Center" VerticalOptions="Center">
+                <ScrollView>
+                    <VerticalStackLayout Spacing="14">
+                        <Label Text="{Binding AssignTitle}" FontSize="18" FontAttributes="Bold" TextColor="{StaticResource TextColor}" />
+                        <Label Text="{Binding AssignSubtitle}" Style="{StaticResource Body}" />
+
+                        <Label Text="SUGGESTIONS" Style="{StaticResource FieldLabel}" />
+                        <VerticalStackLayout BindableLayout.ItemsSource="{Binding Suggestions}" Spacing="4">
+                            <BindableLayout.ItemTemplate>
+                                <DataTemplate x:DataType="vm:AlternativeItem">
+                                    <Button Text="{Binding Label}" Style="{StaticResource SecondaryButton}" HorizontalOptions="Fill"
+                                            Command="{Binding Source={x:Reference PageRoot}, Path=BindingContext.AssignMemberCommand}"
+                                            CommandParameter="{Binding MemberId}" />
+                                </DataTemplate>
+                            </BindableLayout.ItemTemplate>
+                        </VerticalStackLayout>
+
+                        <Label Text="SEARCH MEMBERS" Style="{StaticResource FieldLabel}" />
+                        <Border Style="{StaticResource InputShell}">
+                            <Entry Style="{StaticResource Field}" Text="{Binding MemberSearch}" Placeholder="Search members..." />
+                        </Border>
+                        <VerticalStackLayout BindableLayout.ItemsSource="{Binding SearchResults}" Spacing="4">
+                            <BindableLayout.ItemTemplate>
+                                <DataTemplate x:DataType="vm:MemberRow">
+                                    <Button Text="{Binding Display}" Style="{StaticResource SecondaryButton}" HorizontalOptions="Fill"
+                                            Command="{Binding Source={x:Reference PageRoot}, Path=BindingContext.AssignMemberCommand}"
+                                            CommandParameter="{Binding Id}" />
+                                </DataTemplate>
+                            </BindableLayout.ItemTemplate>
+                        </VerticalStackLayout>
+
+                        <HorizontalStackLayout Spacing="10">
+                            <CheckBox IsChecked="{Binding RememberAlias}" />
+                            <Label Text="Remember as alias" Style="{StaticResource Body}" VerticalOptions="Center" />
+                        </HorizontalStackLayout>
+                        <Button Text="Cancel" Style="{StaticResource SecondaryButton}" Command="{Binding CloseAssignCommand}" />
+                    </VerticalStackLayout>
+                </ScrollView>
+            </Border>
+        </Grid>
+    </Grid>
+</ContentPage>

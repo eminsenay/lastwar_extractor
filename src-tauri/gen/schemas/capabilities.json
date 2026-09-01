@@ -1,1 +1,0 @@
-{"default":{"identifier":"default","description":"Default desktop permissions","local":true,"windows":["main"],"permissions":["core:default","dialog:default",{"identifier":"shell:allow-spawn","allow":[{"name":"binaries/lastwar-backend","sidecar":true}]},"shell:allow-stdin-write","shell:allow-kill"]}}
