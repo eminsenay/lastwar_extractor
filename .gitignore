@@ -1,59 +1,11 @@
-# Python bytecode and caches
-__pycache__/
-*.py[cod]
-*.pyo
-*.pyd
-.pytest_cache/
-.mypy_cache/
-.ruff_cache/
+## .NET / MAUI build artifacts
+[Bb]in/
+[Oo]bj/
+*.user
+restore.log
 
-# Virtual environments
-.venv/
-venv/
-env/
-
-# Environment and secrets
-.env
-.env.*
-!.env.example
-
-# App runtime data
-*.log
-*.sqlite3
-*.db
-
-# Local/generated artifacts
-output/
-output/*
-images/
-images/*
-screenshots/
-screenshots/*
-dist/
-build/
-*.spec
-*.xlsx
-*.xls
-
-# Editor and OS files
-.vscode/
+## Rider / VS
+.vs/
 .idea/
-.DS_Store
-Thumbs.db
 
-# PyInstaller / packaging
-*.egg-info/
-.eggs/
-
-# TypeScript / Tauri build outputs
-node_modules/
-frontend/node_modules/
-frontend/dist/
-src-tauri/target/
-src-tauri/binaries/*.exe
-
-# Temporary files
-*.tmp
-*.bak
-*.swp
-*~
+.env

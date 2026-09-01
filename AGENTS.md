@@ -2,13 +2,13 @@
 
 ## Project overview
 
-Native C# **.NET MAUI** desktop app (Windows) that extracts weekly Last War leaderboard screenshots with a vision LLM, matches observations to a member roster, and exports a weekly scores workbook. The whole app lives under [dotnet/](dotnet/); the legacy Python/Tauri implementation has been removed.
+Native C# **.NET MAUI** desktop app (Windows) that extracts weekly Last War leaderboard screenshots with a vision LLM, matches observations to a member roster, and exports a weekly scores workbook. The whole app lives under [LastWarExtractor/](LastWarExtractor/); the legacy Python/Tauri implementation has been removed.
 
-Start with [dotnet/README.md](dotnet/README.md) for build commands, configuration, the 5-step workflow, and project layout. The root [README.md](README.md) still documents the old Python app and is out of date — do not rely on it.
+Start with [README.md](README.md) for build commands, configuration, the 5-step workflow, and project layout. The root [README.md](README.md) is the active project guide; do not rely on any older Python app documentation.
 
 ## Essential commands
 
-Run from the `dotnet/` directory:
+Run from the repository root:
 
 - Build (debug): `dotnet build LastWarExtractor/LastWarExtractor.csproj -c Debug`
 - Build (release): `dotnet build LastWarExtractor/LastWarExtractor.csproj -c Release`
@@ -19,15 +19,15 @@ Requires .NET SDK 10.0+ and Windows 10 build 17763+. A local `nuget.config` scop
 
 ## Architecture
 
-Flow: [MauiProgram.cs](dotnet/LastWarExtractor/MauiProgram.cs) (DI) → `MainViewModel` → `WorkflowService` → `Services/`.
+Flow: [MauiProgram.cs](LastWarExtractor/MauiProgram.cs) (DI) → `MainViewModel` → `WorkflowService` → `Services/`.
 
-- [Services/WorkflowService.cs](dotnet/LastWarExtractor/Services/WorkflowService.cs): in-process orchestration and app state (config, members, screenshots, observations). No sidecar / JSON-RPC.
-- [Services/ExtractorService.cs](dotnet/LastWarExtractor/Services/ExtractorService.cs): rate limiter, retry/backoff, provider backends, payload sanitization and validation.
-- [Services/Matcher.cs](dotnet/LastWarExtractor/Services/Matcher.cs): `MemberMatcher` (deterministic matching) and `WeeklyBuilder` (dedup + weekly aggregation).
-- [Services/Storage.cs](dotnet/LastWarExtractor/Services/Storage.cs): `AppDatabase`, `AliasStore`, `ExtractionCache` over `app.sqlite3` (also `avatar_fingerprints`).
-- [Services/AvatarStore.cs](dotnet/LastWarExtractor/Services/AvatarStore.cs) + [Services/Fingerprinter.cs](dotnet/LastWarExtractor/Services/Fingerprinter.cs): local dHash + ORB avatar fingerprints (no extra LLM calls).
-- [Services/MembersLoader.cs](dotnet/LastWarExtractor/Services/MembersLoader.cs), [Services/ExcelExporter.cs](dotnet/LastWarExtractor/Services/ExcelExporter.cs), [Services/ExtractionPrompt.cs](dotnet/LastWarExtractor/Services/ExtractionPrompt.cs), [Services/SecretStore.cs](dotnet/LastWarExtractor/Services/SecretStore.cs), [Services/RequestRateLimiter.cs](dotnet/LastWarExtractor/Services/RequestRateLimiter.cs).
-- UI: [ViewModels/MainViewModel.cs](dotnet/LastWarExtractor/ViewModels/MainViewModel.cs) (5-step state machine), [Views/MainPage.xaml](dotnet/LastWarExtractor/Views/MainPage.xaml), models in [Models/](dotnet/LastWarExtractor/Models).
+- [Services/WorkflowService.cs](LastWarExtractor/Services/WorkflowService.cs): in-process orchestration and app state (config, members, screenshots, observations). No sidecar / JSON-RPC.
+- [Services/ExtractorService.cs](LastWarExtractor/Services/ExtractorService.cs): rate limiter, retry/backoff, provider backends, payload sanitization and validation.
+- [Services/Matcher.cs](LastWarExtractor/Services/Matcher.cs): `MemberMatcher` (deterministic matching) and `WeeklyBuilder` (dedup + weekly aggregation).
+- [Services/Storage.cs](LastWarExtractor/Services/Storage.cs): `AppDatabase`, `AliasStore`, `ExtractionCache` over `app.sqlite3` (also `avatar_fingerprints`).
+- [Services/AvatarStore.cs](LastWarExtractor/Services/AvatarStore.cs) + [Services/Fingerprinter.cs](LastWarExtractor/Services/Fingerprinter.cs): local dHash + ORB avatar fingerprints (no extra LLM calls).
+- [Services/MembersLoader.cs](LastWarExtractor/Services/MembersLoader.cs), [Services/ExcelExporter.cs](LastWarExtractor/Services/ExcelExporter.cs), [Services/ExtractionPrompt.cs](LastWarExtractor/Services/ExtractionPrompt.cs), [Services/SecretStore.cs](LastWarExtractor/Services/SecretStore.cs), [Services/RequestRateLimiter.cs](LastWarExtractor/Services/RequestRateLimiter.cs).
+- UI: [ViewModels/MainViewModel.cs](LastWarExtractor/ViewModels/MainViewModel.cs) (5-step state machine), [Views/MainPage.xaml](LastWarExtractor/Views/MainPage.xaml), models in [Models/](LastWarExtractor/Models).
 
 ## Conventions to preserve
 
