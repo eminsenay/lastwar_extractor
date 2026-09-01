@@ -11,31 +11,45 @@
         <ScrollView>
             <VerticalStackLayout Padding="42,28,42,60" Spacing="0" MaximumWidthRequest="1180" HorizontalOptions="Center">
 
+                <!-- Command Center Hero Header -->
+                <Border Stroke="{StaticResource LineColor}" StrokeThickness="1" StrokeShape="RoundRectangle 4" Padding="0" Margin="0,0,0,16">
+                    <Grid HeightRequest="100">
+                        <Image Source="command_center_header.png" Aspect="AspectFill" HorizontalOptions="Fill" VerticalOptions="Fill" />
+                        <Border HorizontalOptions="Start" VerticalOptions="Start" Margin="16,12" BackgroundColor="#E6101417" Stroke="{StaticResource PrimaryBg}" StrokeThickness="1" Padding="12,6" StrokeShape="RoundRectangle 3">
+                            <HorizontalStackLayout Spacing="8" VerticalOptions="Center">
+                                <Image Source="app_launcher.png" WidthRequest="22" HeightRequest="22" VerticalOptions="Center" />
+                                <Label Text="[ RADAR HQ / TACTICAL DESK ]" Style="{StaticResource Eyebrow}" TextColor="{StaticResource PrimaryBg}" VerticalOptions="Center" />
+                            </HorizontalStackLayout>
+                        </Border>
+                    </Grid>
+                </Border>
+
                 <!-- Topbar -->
-                <Grid ColumnDefinitions="*,Auto" Padding="0,0,0,24">
+                <Grid ColumnDefinitions="*,Auto" Padding="0,0,0,16">
                     <VerticalStackLayout Spacing="4">
-                        <Label Text="LAST WAR / WEEKLY OPS" Style="{StaticResource Eyebrow}" />
-                        <Label Text="Score extraction desk" Style="{StaticResource H1}" />
+                        <Label Text="[ COMMAND CENTER / WEEKLY OPERATIONS ]" Style="{StaticResource Eyebrow}" />
+                        <Label Text="LAST WAR: SURVIVAL DESK" Style="{StaticResource H1}" />
                     </VerticalStackLayout>
-                    <Label Grid.Column="1" VerticalOptions="End" Style="{StaticResource FieldLabel}"
-                           Text="Local desktop build" />
+                    <Border Grid.Column="1" VerticalOptions="End" BackgroundColor="#1D2630" Stroke="{StaticResource ConnReady}" StrokeThickness="1" Padding="10,6" StrokeShape="RoundRectangle 3">
+                        <Label Style="{StaticResource FieldLabel}" Text="[ STATUS: ONLINE · RADAR READY ]" TextColor="{StaticResource ConnReady}" />
+                    </Border>
                 </Grid>
                 <BoxView HeightRequest="1" Color="{StaticResource LineColor}" />
 
                 <!-- Steps -->
                 <HorizontalStackLayout Spacing="6" Padding="0,20,0,26">
-                    <Button Text="01 Settings" Style="{StaticResource CompactButton}" Command="{Binding GoToCommand}" CommandParameter="0" />
-                    <Button Text="02 Roster" Style="{StaticResource CompactButton}" Command="{Binding GoToCommand}" CommandParameter="1" />
-                    <Button Text="03 Screenshots" Style="{StaticResource CompactButton}" Command="{Binding GoToCommand}" CommandParameter="2" />
-                    <Button Text="04 Review" Style="{StaticResource CompactButton}" Command="{Binding GoToCommand}" CommandParameter="3" />
-                    <Button Text="05 Export" Style="{StaticResource CompactButton}" Command="{Binding GoToCommand}" CommandParameter="4" />
+                    <Button Text="[ 01 SETUP ]" Style="{StaticResource CompactButton}" Command="{Binding GoToCommand}" CommandParameter="0" />
+                    <Button Text="[ 02 ROSTER ]" Style="{StaticResource CompactButton}" Command="{Binding GoToCommand}" CommandParameter="1" />
+                    <Button Text="[ 03 RECON ]" Style="{StaticResource CompactButton}" Command="{Binding GoToCommand}" CommandParameter="2" />
+                    <Button Text="[ 04 VERIFY ]" Style="{StaticResource CompactButton}" Command="{Binding GoToCommand}" CommandParameter="3" />
+                    <Button Text="[ 05 DEBRIEF ]" Style="{StaticResource CompactButton}" Command="{Binding GoToCommand}" CommandParameter="4" />
                 </HorizontalStackLayout>
 
                 <!-- ===== Settings ===== -->
                 <VerticalStackLayout IsVisible="{Binding IsSettings}" Spacing="16">
-                    <Label Text="01 / ENDPOINT" Style="{StaticResource Eyebrow}" />
-                    <Label Text="Point the extractor at your model." Style="{StaticResource H2}" />
-                    <Label Text="Configure the LLM provider and enter your API key. The key is stored encrypted on this device." Style="{StaticResource Body}" />
+                    <Label Text="[ OP-01 / ENDPOINT CONFIG ]" Style="{StaticResource Eyebrow}" />
+                    <Label Text="Point the extractor at your vision model." Style="{StaticResource H2}" />
+                    <Label Text="Configure the LLM provider and enter your API key. Credentials are stored securely via encrypted vault." Style="{StaticResource Body}" />
 
                     <Border Style="{StaticResource Card}" MaximumWidthRequest="640" HorizontalOptions="Start">
                         <VerticalStackLayout Spacing="18">
@@ -88,9 +102,9 @@
 
                 <!-- ===== Roster ===== -->
                 <VerticalStackLayout IsVisible="{Binding IsRoster}" Spacing="16">
-                    <Label Text="02 / ROSTER" Style="{StaticResource Eyebrow}" />
-                    <Label Text="Start with the source of truth." Style="{StaticResource H2}" />
-                    <Label Text="Load the active member roster before extraction." Style="{StaticResource Body}" />
+                    <Label Text="[ OP-02 / SQUAD REGISTRY ]" Style="{StaticResource Eyebrow}" />
+                    <Label Text="Import the alliance roster." Style="{StaticResource H2}" />
+                    <Label Text="Load the active squad member roster before executing recon extraction." Style="{StaticResource Body}" />
 
                     <Border Style="{StaticResource Card}" MaximumWidthRequest="640" HorizontalOptions="Start">
                         <VerticalStackLayout Spacing="18">
@@ -129,9 +143,9 @@
 
                 <!-- ===== Screenshots ===== -->
                 <VerticalStackLayout IsVisible="{Binding IsScreenshots}" Spacing="16">
-                    <Label Text="03 / CAPTURES" Style="{StaticResource Eyebrow}" />
-                    <Label Text="Bring the week into focus." Style="{StaticResource H2}" />
-                    <Label Text="Add leaderboard screenshots, then run extraction." Style="{StaticResource Body}" />
+                    <Label Text="[ OP-03 / RECON CAPTURES ]" Style="{StaticResource Eyebrow}" />
+                    <Label Text="Ingest weekly leaderboard screenshots." Style="{StaticResource H2}" />
+                    <Label Text="Add leaderboard screenshots to queue, then trigger vision extraction." Style="{StaticResource Body}" />
 
                     <Border Style="{StaticResource Card}" MaximumWidthRequest="720" HorizontalOptions="Start">
                         <VerticalStackLayout Spacing="18">
@@ -163,30 +177,34 @@
 
                 <!-- ===== Review ===== -->
                 <VerticalStackLayout IsVisible="{Binding IsReview}" Spacing="16">
-                    <Label Text="04 / EXCEPTIONS" Style="{StaticResource Eyebrow}" />
-                    <Label Text="Resolve what needs a human." Style="{StaticResource H2}" />
+                    <Label Text="[ OP-04 / TARGET VERIFICATION ]" Style="{StaticResource Eyebrow}" />
+                    <Label Text="Resolve unassigned targets &amp; squad aliases." Style="{StaticResource H2}" />
 
                     <Border Style="{StaticResource Card}" IsVisible="{Binding Issues.Count, Converter={StaticResource CountToBool}}" BackgroundColor="{StaticResource WarningBg}" Stroke="{StaticResource ConnBusy}">
-                        <VerticalStackLayout BindableLayout.ItemsSource="{Binding Issues}" Spacing="4">
-                            <BindableLayout.ItemTemplate>
-                                <DataTemplate x:DataType="x:String">
-                                    <Label Text="{Binding .}" FontSize="12" TextColor="{StaticResource WarningText}" />
-                                </DataTemplate>
-                            </BindableLayout.ItemTemplate>
-                        </VerticalStackLayout>
+                        <HorizontalStackLayout Spacing="12" VerticalOptions="Center">
+                            <Image Source="needs_review_badge.png" WidthRequest="28" HeightRequest="28" VerticalOptions="Start" Margin="0,2,0,0" />
+                            <VerticalStackLayout BindableLayout.ItemsSource="{Binding Issues}" Spacing="4" VerticalOptions="Center">
+                                <BindableLayout.ItemTemplate>
+                                    <DataTemplate x:DataType="x:String">
+                                        <Label Text="{Binding .}" FontSize="12" TextColor="{StaticResource WarningText}" />
+                                    </DataTemplate>
+                                </BindableLayout.ItemTemplate>
+                            </VerticalStackLayout>
+                        </HorizontalStackLayout>
                     </Border>
 
                     <VerticalStackLayout BindableLayout.ItemsSource="{Binding Observations}" Spacing="8">
                         <BindableLayout.ItemTemplate>
                             <DataTemplate x:DataType="vm:ObservationItem">
-                                <Border BackgroundColor="{StaticResource PanelBg}" Stroke="{Binding AccentColor}" StrokeThickness="1" Padding="20,16">
-                                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="20">
-                                        <VerticalStackLayout Spacing="2">
+                                <Border BackgroundColor="{StaticResource PanelBg}" Stroke="{Binding AccentColor}" StrokeThickness="2" Padding="16,14">
+                                    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="16">
+                                        <Image Source="{Binding StatusIcon}" WidthRequest="32" HeightRequest="32" VerticalOptions="Center" />
+                                        <VerticalStackLayout Grid.Column="1" Spacing="2">
                                             <Label Text="{Binding Header}" Style="{StaticResource Eyebrow}" />
                                             <Label Text="{Binding Name}" FontSize="18" FontAttributes="Bold" TextColor="{StaticResource TextColor}" />
                                             <Label Text="{Binding Detail}" FontSize="13" TextColor="{StaticResource Muted2}" />
                                         </VerticalStackLayout>
-                                        <HorizontalStackLayout Grid.Column="1" Spacing="12" VerticalOptions="Center">
+                                        <HorizontalStackLayout Grid.Column="2" Spacing="12" VerticalOptions="Center">
                                             <Label Text="{Binding Matched}" FontAttributes="Bold" TextColor="{StaticResource TextColor}" VerticalOptions="Center" />
                                             <Button Text="{Binding AssignLabel}" Style="{StaticResource CompactButton}"
                                                     Command="{Binding Source={x:Reference PageRoot}, Path=BindingContext.OpenAssignCommand}"
@@ -197,33 +215,42 @@
                             </DataTemplate>
                         </BindableLayout.ItemTemplate>
                     </VerticalStackLayout>
-                    <Label Text="No observations yet. Extract screenshots first." Style="{StaticResource Body}"
+                    <Label Text="No observations in queue. Ingest screenshots to populate target list." Style="{StaticResource Body}"
                            IsVisible="{Binding Observations.Count, Converter={StaticResource CountToBool}, ConverterParameter=invert}" />
                 </VerticalStackLayout>
 
                 <!-- ===== Export ===== -->
                 <VerticalStackLayout IsVisible="{Binding IsExport}" Spacing="16">
-                    <Label Text="05 / DELIVERY" Style="{StaticResource Eyebrow}" />
-                    <Label Text="Ready for the weekly workbook?" Style="{StaticResource H2}" />
+                    <Label Text="[ OP-05 / INTEL DEBRIEF ]" Style="{StaticResource Eyebrow}" />
+                    <Label Text="Compile weekly score summary." Style="{StaticResource H2}" />
 
                     <HorizontalStackLayout Spacing="10">
-                        <Border Style="{StaticResource Card}" MinimumWidthRequest="150">
-                            <VerticalStackLayout>
-                                <Label Text="MEMBERS" Style="{StaticResource FieldLabel}" />
-                                <Label Text="{Binding MemberCount}" FontSize="22" FontAttributes="Bold" TextColor="{StaticResource TextColor}" />
-                            </VerticalStackLayout>
+                        <Border Style="{StaticResource Card}" MinimumWidthRequest="180">
+                            <HorizontalStackLayout Spacing="12" VerticalOptions="Center">
+                                <Image Source="app_launcher.png" WidthRequest="36" HeightRequest="36" VerticalOptions="Center" />
+                                <VerticalStackLayout VerticalOptions="Center">
+                                    <Label Text="SQUAD MEMBERS" Style="{StaticResource FieldLabel}" />
+                                    <Label Text="{Binding MemberCount}" FontSize="22" FontAttributes="Bold" TextColor="{StaticResource TextColor}" />
+                                </VerticalStackLayout>
+                            </HorizontalStackLayout>
                         </Border>
-                        <Border Style="{StaticResource Card}" MinimumWidthRequest="150">
-                            <VerticalStackLayout>
-                                <Label Text="OBSERVATIONS" Style="{StaticResource FieldLabel}" />
-                                <Label Text="{Binding ObservationCount}" FontSize="22" FontAttributes="Bold" TextColor="{StaticResource TextColor}" />
-                            </VerticalStackLayout>
+                        <Border Style="{StaticResource Card}" MinimumWidthRequest="180">
+                            <HorizontalStackLayout Spacing="12" VerticalOptions="Center">
+                                <Image Source="matched_status_badge.png" WidthRequest="36" HeightRequest="36" VerticalOptions="Center" />
+                                <VerticalStackLayout VerticalOptions="Center">
+                                    <Label Text="OBSERVATIONS" Style="{StaticResource FieldLabel}" />
+                                    <Label Text="{Binding ObservationCount}" FontSize="22" FontAttributes="Bold" TextColor="{StaticResource TextColor}" />
+                                </VerticalStackLayout>
+                            </HorizontalStackLayout>
                         </Border>
-                        <Border Style="{StaticResource Card}" MinimumWidthRequest="150">
-                            <VerticalStackLayout>
-                                <Label Text="UNRESOLVED" Style="{StaticResource FieldLabel}" />
-                                <Label Text="{Binding UnmatchedCount}" FontSize="22" FontAttributes="Bold" TextColor="{StaticResource ErrorText}" />
-                            </VerticalStackLayout>
+                        <Border Style="{StaticResource Card}" MinimumWidthRequest="180">
+                            <HorizontalStackLayout Spacing="12" VerticalOptions="Center">
+                                <Image Source="unmatched_target_skull_badge.png" WidthRequest="36" HeightRequest="36" VerticalOptions="Center" />
+                                <VerticalStackLayout VerticalOptions="Center">
+                                    <Label Text="UNRESOLVED TARGETS" Style="{StaticResource FieldLabel}" />
+                                    <Label Text="{Binding UnmatchedCount}" FontSize="22" FontAttributes="Bold" TextColor="{StaticResource ErrorText}" />
+                                </VerticalStackLayout>
+                            </HorizontalStackLayout>
                         </Border>
                     </HorizontalStackLayout>
                     <Button Text="Export workbook" Style="{StaticResource PrimaryButton}" Command="{Binding ExportCommand}" />
@@ -234,16 +261,17 @@
         </ScrollView>
 
         <!-- ===== Assign overlay ===== -->
-        <Grid IsVisible="{Binding AssignVisible}" BackgroundColor="#99000000">
-            <Border BackgroundColor="{StaticResource PanelBg}" Stroke="{StaticResource TextColor}" StrokeThickness="2"
+        <Grid IsVisible="{Binding AssignVisible}" BackgroundColor="#E60B0E11">
+            <Border BackgroundColor="{StaticResource PanelBg}" Stroke="{StaticResource PrimaryBg}" StrokeThickness="2"
                     Padding="24" WidthRequest="520" MaximumHeightRequest="640"
                     HorizontalOptions="Center" VerticalOptions="Center">
                 <ScrollView>
                     <VerticalStackLayout Spacing="14">
+                        <Label Text="[ MANUAL SQUAD ASSIGNMENT ]" Style="{StaticResource Eyebrow}" />
                         <Label Text="{Binding AssignTitle}" FontSize="18" FontAttributes="Bold" TextColor="{StaticResource TextColor}" />
                         <Label Text="{Binding AssignSubtitle}" Style="{StaticResource Body}" />
 
-                        <Label Text="SUGGESTIONS" Style="{StaticResource FieldLabel}" />
+                        <Label Text="TARGET SUGGESTIONS" Style="{StaticResource FieldLabel}" />
                         <VerticalStackLayout BindableLayout.ItemsSource="{Binding Suggestions}" Spacing="4">
                             <BindableLayout.ItemTemplate>
                                 <DataTemplate x:DataType="vm:AlternativeItem">

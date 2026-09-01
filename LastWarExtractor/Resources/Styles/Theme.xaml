@@ -7,29 +7,29 @@
     <conv:InvertBoolConverter x:Key="Invert" />
     <conv:CountToBoolConverter x:Key="CountToBool" />
 
-    <!-- Palette (from the TypeScript UI) -->
-    <Color x:Key="TextColor">#17231F</Color>
-    <Color x:Key="BodyBg">#E9EEE9</Color>
-    <Color x:Key="PanelBg">#F7FAF6</Color>
-    <Color x:Key="LineColor">#CFDBD1</Color>
-    <Color x:Key="InputLine">#AFC0B3</Color>
-    <Color x:Key="Muted">#668071</Color>
-    <Color x:Key="Muted2">#71847A</Color>
-    <Color x:Key="PrimaryBg">#17231F</Color>
-    <Color x:Key="PrimaryText">#F4F7F2</Color>
-    <Color x:Key="SecondaryBg">#DCE8DD</Color>
-    <Color x:Key="SecondaryText">#294236</Color>
-    <Color x:Key="ToggleBg">#E2EBE3</Color>
-    <Color x:Key="MatchedBorder">#9AB5A1</Color>
-    <Color x:Key="NeedsReviewBorder">#C27B55</Color>
-    <Color x:Key="SuccessText">#2E7D32</Color>
-    <Color x:Key="SuccessBg">#E8F5E9</Color>
-    <Color x:Key="ErrorText">#C62828</Color>
-    <Color x:Key="ErrorBg">#FFEBEE</Color>
-    <Color x:Key="WarningText">#8A6D1F</Color>
-    <Color x:Key="WarningBg">#FFF8E6</Color>
-    <Color x:Key="ConnReady">#78A56F</Color>
-    <Color x:Key="ConnBusy">#D9A441</Color>
+    <!-- Palette (Tactical Zombie Hunting / Command Center HUD) -->
+    <Color x:Key="TextColor">#F0F4F8</Color>
+    <Color x:Key="BodyBg">#121619</Color>
+    <Color x:Key="PanelBg">#1A2026</Color>
+    <Color x:Key="LineColor">#344452</Color>
+    <Color x:Key="InputLine">#415363</Color>
+    <Color x:Key="Muted">#7A8C9E</Color>
+    <Color x:Key="Muted2">#A0B0C0</Color>
+    <Color x:Key="PrimaryBg">#FF6B00</Color>
+    <Color x:Key="PrimaryText">#101417</Color>
+    <Color x:Key="SecondaryBg">#2C3844</Color>
+    <Color x:Key="SecondaryText">#00E676</Color>
+    <Color x:Key="ToggleBg">#1D2630</Color>
+    <Color x:Key="MatchedBorder">#00E676</Color>
+    <Color x:Key="NeedsReviewBorder">#FF9800</Color>
+    <Color x:Key="SuccessText">#00E676</Color>
+    <Color x:Key="SuccessBg">#0C2B1B</Color>
+    <Color x:Key="ErrorText">#FF3333</Color>
+    <Color x:Key="ErrorBg">#2D1214</Color>
+    <Color x:Key="WarningText">#FFC107</Color>
+    <Color x:Key="WarningBg">#2B220C</Color>
+    <Color x:Key="ConnReady">#00E676</Color>
+    <Color x:Key="ConnBusy">#FFC107</Color>
 
     <x:String x:Key="MonoFont">Consolas</x:String>
 
@@ -37,9 +37,9 @@
     <Style x:Key="Eyebrow" TargetType="Label">
         <Setter Property="FontFamily" Value="Consolas" />
         <Setter Property="FontSize" Value="11" />
-        <Setter Property="CharacterSpacing" Value="1.5" />
+        <Setter Property="CharacterSpacing" Value="1.8" />
         <Setter Property="FontAttributes" Value="Bold" />
-        <Setter Property="TextColor" Value="{StaticResource Muted}" />
+        <Setter Property="TextColor" Value="{StaticResource PrimaryBg}" />
     </Style>
 
     <Style x:Key="H1" TargetType="Label">
@@ -49,7 +49,7 @@
     </Style>
 
     <Style x:Key="H2" TargetType="Label">
-        <Setter Property="FontSize" Value="26" />
+        <Setter Property="FontSize" Value="24" />
         <Setter Property="FontAttributes" Value="Bold" />
         <Setter Property="TextColor" Value="{StaticResource TextColor}" />
     </Style>
@@ -62,7 +62,7 @@
     <Style x:Key="FieldLabel" TargetType="Label">
         <Setter Property="FontFamily" Value="Consolas" />
         <Setter Property="FontSize" Value="11" />
-        <Setter Property="CharacterSpacing" Value="0.5" />
+        <Setter Property="CharacterSpacing" Value="1.0" />
         <Setter Property="FontAttributes" Value="Bold" />
         <Setter Property="TextColor" Value="{StaticResource Muted}" />
     </Style>
@@ -72,8 +72,8 @@
         <Setter Property="BackgroundColor" Value="{StaticResource PrimaryBg}" />
         <Setter Property="TextColor" Value="{StaticResource PrimaryText}" />
         <Setter Property="FontAttributes" Value="Bold" />
-        <Setter Property="CornerRadius" Value="0" />
-        <Setter Property="Padding" Value="18,14" />
+        <Setter Property="CornerRadius" Value="3" />
+        <Setter Property="Padding" Value="18,12" />
         <Setter Property="HorizontalOptions" Value="Start" />
     </Style>
 
@@ -81,13 +81,13 @@
         <Setter Property="BackgroundColor" Value="{StaticResource SecondaryBg}" />
         <Setter Property="TextColor" Value="{StaticResource SecondaryText}" />
         <Setter Property="FontAttributes" Value="Bold" />
-        <Setter Property="CornerRadius" Value="0" />
-        <Setter Property="Padding" Value="18,14" />
+        <Setter Property="CornerRadius" Value="3" />
+        <Setter Property="Padding" Value="18,12" />
         <Setter Property="HorizontalOptions" Value="Start" />
     </Style>
 
     <Style x:Key="CompactButton" TargetType="Button" BasedOn="{StaticResource SecondaryButton}">
-        <Setter Property="Padding" Value="12,9" />
+        <Setter Property="Padding" Value="12,8" />
         <Setter Property="FontSize" Value="13" />
     </Style>
 
@@ -95,7 +95,7 @@
     <Style x:Key="Field" TargetType="Entry">
         <Setter Property="BackgroundColor" Value="Transparent" />
         <Setter Property="TextColor" Value="{StaticResource TextColor}" />
-        <Setter Property="PlaceholderColor" Value="{StaticResource Muted2}" />
+        <Setter Property="PlaceholderColor" Value="{StaticResource Muted}" />
         <Setter Property="FontSize" Value="15" />
         <Setter Property="HeightRequest" Value="40" />
     </Style>
@@ -109,11 +109,11 @@
 
     <!-- Visible container that marks a control as an editable field -->
     <Style x:Key="InputShell" TargetType="Border">
-        <Setter Property="BackgroundColor" Value="#FFFFFF" />
+        <Setter Property="BackgroundColor" Value="#232B33" />
         <Setter Property="Stroke" Value="{StaticResource InputLine}" />
         <Setter Property="StrokeThickness" Value="1" />
         <Setter Property="Padding" Value="12,0" />
-        <Setter Property="StrokeShape" Value="RoundRectangle 6" />
+        <Setter Property="StrokeShape" Value="RoundRectangle 3" />
     </Style>
 
     <Style x:Key="Card" TargetType="Border">
