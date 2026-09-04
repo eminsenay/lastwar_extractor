@@ -30,6 +30,11 @@ public static class MauiProgram
 #if DEBUG
 		builder.Logging.AddDebug();
 #endif
+		// MAUI always probes "Assets/Fonts/{Family}.ttf|otf" for any FontFamily not registered
+		// via ConfigureFonts (e.g. the system font "Consolas" used in Theme.xaml). That probe
+		// throws on unpackaged Windows apps and is caught internally, but still logs as an
+		// Error even though the font resolves correctly. Silence that specific noise.
+		builder.Logging.AddFilter("Microsoft.Maui.FontManager", LogLevel.Critical);
 
 		return builder.Build();
 	}
