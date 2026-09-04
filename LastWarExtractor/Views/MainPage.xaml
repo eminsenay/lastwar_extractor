@@ -99,7 +99,7 @@
                                 <Label Text="Reuse cached extractions (skips repeat API calls)" Style="{StaticResource Body}" VerticalOptions="Center" />
                             </HorizontalStackLayout>
                             <VerticalStackLayout Spacing="6">
-                                <Label Text="API KEY" Style="{StaticResource FieldLabel}" />
+                                <Label Text="{Binding ApiKeyFieldLabel}" Style="{StaticResource FieldLabel}" />
                                 <Border Style="{StaticResource InputShell}">
                                     <Entry Style="{StaticResource Field}" Text="{Binding ApiKey}" IsPassword="True" Placeholder="Paste your API key to store it securely" />
                                 </Border>

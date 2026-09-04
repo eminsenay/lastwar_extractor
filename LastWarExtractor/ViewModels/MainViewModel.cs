@@ -106,6 +106,7 @@ public partial class MainViewModel : ObservableObject
     public bool IsBaseUrlEditable => Provider is not ("openai" or "gemini");
     public bool IsApiStyleEditable => Provider is not ("openai" or "gemini");
     public bool IsEndpointEditable => IsBaseUrlEditable;
+    public string ApiKeyFieldLabel => $"API KEY ({Provider.ToUpperInvariant()})";
 
     partial void OnModelChanged(string value) => RefreshFilteredModels(value);
 
@@ -145,6 +146,7 @@ public partial class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(IsBaseUrlEditable));
         OnPropertyChanged(nameof(IsApiStyleEditable));
         OnPropertyChanged(nameof(IsEndpointEditable));
+        OnPropertyChanged(nameof(ApiKeyFieldLabel));
 
         UpdateAvailableModels(value);
 
@@ -167,6 +169,33 @@ public partial class MainViewModel : ObservableObject
             if (string.IsNullOrWhiteSpace(BaseUrl) || BaseUrl == "https://api.openai.com/v1" || BaseUrl.StartsWith("https://generativelanguage.googleapis.com", StringComparison.OrdinalIgnoreCase))
                 BaseUrl = "http://localhost:1234/v1";
             ApiStyle = "chat";
+        }
+
+        _ = RefreshKeyStatusForProviderAsync(value);
+    }
+
+    // Best-effort preview of stored-key status for the provider selected in the UI, before Save is pressed.
+    private async Task RefreshKeyStatusForProviderAsync(string provider)
+    {
+        try
+        {
+            if (!ExtractorService.IsLocalEndpoint(BaseUrl))
+            {
+                var key = await _service.GetApiKeyAsync(provider);
+                ApiKeyOk = !string.IsNullOrEmpty(key);
+                ApiKeyStatus = ApiKeyOk
+                    ? $"API key stored securely for {provider}."
+                    : $"No API key stored for {provider}. Enter your key above and save settings.";
+            }
+            else
+            {
+                ApiKeyOk = true;
+                ApiKeyStatus = "This endpoint does not require an API key.";
+            }
+        }
+        catch
+        {
+            // UI preview only; ignore failures here, actual state refreshes on save.
         }
     }
 
@@ -205,6 +234,7 @@ public partial class MainViewModel : ObservableObject
                 RosterSheetName = _service.Config.RosterSheetName,
             };
             _service.SetConfig(incoming);
+            await _service.RefreshApiKeyStateAsync();
             if (!string.IsNullOrWhiteSpace(ApiKey))
             {
                 await _service.SetApiKeyAsync(ApiKey);

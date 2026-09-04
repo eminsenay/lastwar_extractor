@@ -73,7 +73,13 @@ public sealed class WorkflowService
     // --- Config ---
     public async Task InitializeAsync()
     {
-        var key = await _secrets.GetApiKeyAsync().ConfigureAwait(false);
+        await RefreshApiKeyStateAsync().ConfigureAwait(false);
+    }
+
+    /// <summary>Reloads ApiKeyPresent/Hint from the secret store for the currently configured provider.</summary>
+    public async Task RefreshApiKeyStateAsync()
+    {
+        var key = await _secrets.GetApiKeyAsync(Config.Provider).ConfigureAwait(false);
         ApplyKeyState(key);
     }
 
@@ -84,14 +90,19 @@ public sealed class WorkflowService
         Config.ApiKeyRequired = !ExtractorService.IsLocalEndpoint(Config.BaseUrl);
     }
 
+    /// <summary>Stores an API key for the currently configured provider.</summary>
     public async Task SetApiKeyAsync(string key)
     {
         key = key.Trim();
-        await _secrets.SetApiKeyAsync(key).ConfigureAwait(false);
+        await _secrets.SetApiKeyAsync(Config.Provider, key).ConfigureAwait(false);
         ApplyKeyState(key);
     }
 
-    public Task<string?> GetApiKeyAsync() => _secrets.GetApiKeyAsync();
+    /// <summary>Gets the API key stored for the currently configured provider.</summary>
+    public Task<string?> GetApiKeyAsync() => _secrets.GetApiKeyAsync(Config.Provider);
+
+    /// <summary>Gets the API key stored for an arbitrary provider (used for live UI previews before saving).</summary>
+    public Task<string?> GetApiKeyAsync(string provider) => _secrets.GetApiKeyAsync(provider);
 
     public void SetConfig(AppConfig incoming)
     {
