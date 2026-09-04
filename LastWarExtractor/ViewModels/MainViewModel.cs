@@ -8,12 +8,48 @@ namespace LastWarExtractor.ViewModels;
 
 public partial class MainViewModel : ObservableObject
 {
+    private static readonly string[] GeminiModels =
+    {
+        "gemini-3.8-flash",
+        "gemini-3.7-flash",
+        "gemini-3.6-flash",
+        "gemini-3.5-flash",
+        "gemini-3.5-flash-lite",
+        "gemini-3.1-flash-lite",
+        "gemini-3.1-pro-preview",
+        "gemini-3-flash-preview"
+    };
+
+    private static readonly string[] OpenAiModels =
+    {
+        "gpt-6-astra",
+        "gpt-5.6-sol",
+        "gpt-5.6-terra",
+        "gpt-5.6-luna",
+    };
+
+    private static readonly string[] LocalModels =
+    {
+        "ministral-3-3b",
+        "olmocr-2-7b",
+        "unlimited-ocr",
+        "glm-ocr",
+        "qwen-3.5-9b",
+    };
+
+    private static readonly string[] GeneralModels =
+    {
+        "qwen-3.8-27b",
+        "deepseek-v4-flash",
+        "ministral-3-14b-instruct-2512",
+    };
+
     private readonly WorkflowService _service;
 
     public MainViewModel(WorkflowService service)
     {
         _service = service;
-        Providers = new ObservableCollection<string> { "openai", "local", "custom" };
+        Providers = new ObservableCollection<string> { "openai", "gemini", "local", "custom" };
         ApiStyles = new ObservableCollection<string> { "responses", "chat" };
         LoadFromConfig();
     }
@@ -48,10 +84,14 @@ public partial class MainViewModel : ObservableObject
     // --- Settings ---
     public ObservableCollection<string> Providers { get; }
     public ObservableCollection<string> ApiStyles { get; }
+    public ObservableCollection<string> AvailableModels { get; } = new();
+    public ObservableCollection<string> FilteredModels { get; } = new();
 
     [ObservableProperty] private string _provider = "openai";
     [ObservableProperty] private string _baseUrl = "";
     [ObservableProperty] private string _model = "";
+    [ObservableProperty] private string? _selectedModelSuggestion;
+    [ObservableProperty] private bool _showModelSuggestions;
     [ObservableProperty] private string _apiStyle = "responses";
     [ObservableProperty] private int _requestsPerMinute = 28;
     [ObservableProperty] private bool _useCache = true;
@@ -61,16 +101,89 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty] private string _settingsMessage = "";
     [ObservableProperty] private bool _settingsIsError;
 
-    public bool IsEndpointEditable => Provider != "openai";
+    private bool _modelEntryFocused;
+
+    public bool IsBaseUrlEditable => Provider is not ("openai" or "gemini");
+    public bool IsApiStyleEditable => Provider is not ("openai" or "gemini");
+    public bool IsEndpointEditable => IsBaseUrlEditable;
+
+    partial void OnModelChanged(string value) => RefreshFilteredModels(value);
+
+    partial void OnSelectedModelSuggestionChanged(string? value)
+    {
+        if (string.IsNullOrEmpty(value))
+            return;
+        Model = value;
+        ShowModelSuggestions = false;
+        SelectedModelSuggestion = null;
+    }
+
+    public void OnModelEntryFocusChanged(bool focused)
+    {
+        _modelEntryFocused = focused;
+        if (focused)
+            RefreshFilteredModels(Model);
+        else
+            ShowModelSuggestions = false;
+    }
+
+    private void RefreshFilteredModels(string query)
+    {
+        FilteredModels.Clear();
+        var q = query.Trim();
+        var matches = q.Length == 0
+            ? AvailableModels
+            : AvailableModels.Where(m => m.Contains(q, StringComparison.OrdinalIgnoreCase));
+        foreach (var m in matches)
+            FilteredModels.Add(m);
+        if (_modelEntryFocused)
+            ShowModelSuggestions = FilteredModels.Count > 0;
+    }
 
     partial void OnProviderChanged(string value)
     {
+        OnPropertyChanged(nameof(IsBaseUrlEditable));
+        OnPropertyChanged(nameof(IsApiStyleEditable));
         OnPropertyChanged(nameof(IsEndpointEditable));
-        if (value == "openai")
+
+        UpdateAvailableModels(value);
+
+        if (value == "gemini")
+        {
+            BaseUrl = "https://generativelanguage.googleapis.com/v1beta/openai/";
+            ApiStyle = "chat";
+            if (string.IsNullOrWhiteSpace(Model) || OpenAiModels.Contains(Model))
+                Model = "gemini-3.5-flash-lite";
+        }
+        else if (value == "openai")
         {
             BaseUrl = "https://api.openai.com/v1";
             ApiStyle = "responses";
+            if (string.IsNullOrWhiteSpace(Model) || GeminiModels.Contains(Model))
+                Model = "gpt-5.6-terra";
         }
+        else if (value == "local")
+        {
+            if (string.IsNullOrWhiteSpace(BaseUrl) || BaseUrl == "https://api.openai.com/v1" || BaseUrl.StartsWith("https://generativelanguage.googleapis.com", StringComparison.OrdinalIgnoreCase))
+                BaseUrl = "http://localhost:1234/v1";
+            ApiStyle = "chat";
+        }
+    }
+
+    private void UpdateAvailableModels(string provider)
+    {
+        AvailableModels.Clear();
+        var list = provider switch
+        {
+            "gemini" => GeminiModels,
+            "openai" => OpenAiModels,
+            "local" => LocalModels,
+            _ => GeneralModels
+        };
+        foreach (var m in list)
+            AvailableModels.Add(m);
+
+        RefreshFilteredModels(Model);
     }
 
     [RelayCommand]
@@ -412,6 +525,7 @@ public partial class MainViewModel : ObservableObject
     {
         var cfg = _service.Config;
         Provider = cfg.Provider;
+        UpdateAvailableModels(cfg.Provider);
         BaseUrl = cfg.BaseUrl;
         Model = cfg.Model;
         ApiStyle = cfg.ApiStyle;

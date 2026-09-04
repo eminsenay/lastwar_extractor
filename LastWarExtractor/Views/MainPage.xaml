@@ -62,19 +62,30 @@
                             <VerticalStackLayout Spacing="6">
                                 <Label Text="BASE URL" Style="{StaticResource FieldLabel}" />
                                 <Border Style="{StaticResource InputShell}">
-                                    <Entry Style="{StaticResource Field}" Text="{Binding BaseUrl}" IsEnabled="{Binding IsEndpointEditable}" Placeholder="https://api.openai.com/v1" />
+                                    <Entry Style="{StaticResource Field}" Text="{Binding BaseUrl}" IsEnabled="{Binding IsBaseUrlEditable}" Placeholder="https://api.openai.com/v1" />
                                 </Border>
                             </VerticalStackLayout>
                             <VerticalStackLayout Spacing="6">
                                 <Label Text="MODEL" Style="{StaticResource FieldLabel}" />
                                 <Border Style="{StaticResource InputShell}">
-                                    <Entry Style="{StaticResource Field}" Text="{Binding Model}" Placeholder="gpt-5.6-terra" />
+                                    <Entry x:Name="ModelEntry" Style="{StaticResource Field}" Text="{Binding Model}" Placeholder="e.g. gemini-3.5-flash-lite or custom model" Focused="ModelEntry_Focused" Unfocused="ModelEntry_Unfocused" />
+                                </Border>
+                                <Border IsVisible="{Binding ShowModelSuggestions}" BackgroundColor="{StaticResource PanelBg}" Stroke="{StaticResource InputLine}" StrokeThickness="1" Padding="0" StrokeShape="RoundRectangle 3" MaximumHeightRequest="160">
+                                    <CollectionView ItemsSource="{Binding FilteredModels}" SelectionMode="Single" SelectedItem="{Binding SelectedModelSuggestion}">
+                                        <CollectionView.ItemTemplate>
+                                            <DataTemplate x:DataType="x:String">
+                                                <Grid Padding="12,8">
+                                                    <Label Text="{Binding .}" Style="{StaticResource Body}" />
+                                                </Grid>
+                                            </DataTemplate>
+                                        </CollectionView.ItemTemplate>
+                                    </CollectionView>
                                 </Border>
                             </VerticalStackLayout>
                             <VerticalStackLayout Spacing="6">
                                 <Label Text="API STYLE" Style="{StaticResource FieldLabel}" />
                                 <Border Style="{StaticResource InputShell}">
-                                    <Picker Style="{StaticResource FieldPicker}" ItemsSource="{Binding ApiStyles}" SelectedItem="{Binding ApiStyle}" IsEnabled="{Binding IsEndpointEditable}" />
+                                    <Picker Style="{StaticResource FieldPicker}" ItemsSource="{Binding ApiStyles}" SelectedItem="{Binding ApiStyle}" IsEnabled="{Binding IsApiStyleEditable}" />
                                 </Border>
                             </VerticalStackLayout>
                             <VerticalStackLayout Spacing="6">

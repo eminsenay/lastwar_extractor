@@ -109,10 +109,11 @@ public sealed class WorkflowService
             throw new ArgumentException("requestsPerMinute must be between 1 and 30");
 
         var provider = incoming.Provider.Trim().ToLowerInvariant();
-        if (provider is not ("openai" or "local" or "custom"))
+        if (provider is not ("openai" or "gemini" or "local" or "custom"))
         {
             var clean = baseUrl.TrimEnd('/');
             provider = clean == "https://api.openai.com/v1" ? "openai"
+                : clean.StartsWith("https://generativelanguage.googleapis.com", StringComparison.OrdinalIgnoreCase) ? "gemini"
                 : clean == "http://localhost:1234/v1" ? "local"
                 : "custom";
         }
