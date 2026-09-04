@@ -141,6 +141,19 @@ public partial class MainViewModel : ObservableObject
             ShowModelSuggestions = FilteredModels.Count > 0;
     }
 
+    partial void OnProviderChanging(string value)
+    {
+        // Remember the outgoing provider's current base URL/model, even if settings were never saved,
+        // so switching back to it later restores what was showing rather than another provider's leftovers.
+        var oldProvider = Provider;
+        if (string.IsNullOrWhiteSpace(oldProvider) || oldProvider == value)
+            return;
+        if (!string.IsNullOrWhiteSpace(BaseUrl))
+            _service.Config.BaseUrlsByProvider[oldProvider] = BaseUrl;
+        if (!string.IsNullOrWhiteSpace(Model))
+            _service.Config.ModelsByProvider[oldProvider] = Model;
+    }
+
     partial void OnProviderChanged(string value)
     {
         OnPropertyChanged(nameof(IsBaseUrlEditable));
@@ -149,6 +162,8 @@ public partial class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(ApiKeyFieldLabel));
 
         UpdateAvailableModels(value);
+
+        _service.Config.BaseUrlsByProvider.TryGetValue(value, out var rememberedBaseUrl);
 
         if (value == "gemini")
         {
@@ -166,10 +181,19 @@ public partial class MainViewModel : ObservableObject
         }
         else if (value == "local")
         {
-            if (string.IsNullOrWhiteSpace(BaseUrl) || BaseUrl == "https://api.openai.com/v1" || BaseUrl.StartsWith("https://generativelanguage.googleapis.com", StringComparison.OrdinalIgnoreCase))
-                BaseUrl = "http://localhost:1234/v1";
+            BaseUrl = !string.IsNullOrWhiteSpace(rememberedBaseUrl) ? rememberedBaseUrl : "http://localhost:1234/v1";
             ApiStyle = "chat";
         }
+        else
+        {
+            // "custom": restore the base URL last saved for it instead of leaving another provider's URL behind.
+            if (!string.IsNullOrWhiteSpace(rememberedBaseUrl))
+                BaseUrl = rememberedBaseUrl;
+        }
+
+        // Restore the model last used with this provider, overriding the defaults picked above.
+        if (_service.Config.ModelsByProvider.TryGetValue(value, out var remembered) && !string.IsNullOrWhiteSpace(remembered))
+            Model = remembered;
 
         _ = RefreshKeyStatusForProviderAsync(value);
     }
@@ -179,7 +203,7 @@ public partial class MainViewModel : ObservableObject
     {
         try
         {
-            if (!ExtractorService.IsLocalEndpoint(BaseUrl))
+            if (ExtractorService.RequiresApiKey(provider, BaseUrl))
             {
                 var key = await _service.GetApiKeyAsync(provider);
                 ApiKeyOk = !string.IsNullOrEmpty(key);

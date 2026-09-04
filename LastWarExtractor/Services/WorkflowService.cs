@@ -87,7 +87,7 @@ public sealed class WorkflowService
     {
         Config.ApiKeyPresent = !string.IsNullOrEmpty(key);
         Config.ApiKeyHint = string.IsNullOrEmpty(key) ? "" : MaskSecret(key!);
-        Config.ApiKeyRequired = !ExtractorService.IsLocalEndpoint(Config.BaseUrl);
+        Config.ApiKeyRequired = ExtractorService.RequiresApiKey(Config.Provider, Config.BaseUrl);
     }
 
     /// <summary>Stores an API key for the currently configured provider.</summary>
@@ -139,7 +139,9 @@ public sealed class WorkflowService
         Config.RosterXlsxPath = incoming.RosterXlsxPath;
         Config.RosterGoogleSheetUrl = incoming.RosterGoogleSheetUrl;
         Config.RosterSheetName = string.IsNullOrWhiteSpace(incoming.RosterSheetName) ? "Members" : incoming.RosterSheetName;
-        Config.ApiKeyRequired = !ExtractorService.IsLocalEndpoint(baseUrl);
+        Config.ApiKeyRequired = ExtractorService.RequiresApiKey(provider, baseUrl);
+        Config.ModelsByProvider[provider] = model;
+        Config.BaseUrlsByProvider[provider] = baseUrl;
 
         SaveConfig();
     }
@@ -168,6 +170,8 @@ public sealed class WorkflowService
                     config.RosterXlsxPath = saved.RosterXlsxPath ?? config.RosterXlsxPath;
                     config.RosterGoogleSheetUrl = saved.RosterGoogleSheetUrl ?? config.RosterGoogleSheetUrl;
                     config.RosterSheetName = saved.RosterSheetName ?? config.RosterSheetName;
+                    config.ModelsByProvider = saved.ModelsByProvider ?? config.ModelsByProvider;
+                    config.BaseUrlsByProvider = saved.BaseUrlsByProvider ?? config.BaseUrlsByProvider;
                 }
             }
         }
@@ -175,7 +179,7 @@ public sealed class WorkflowService
         {
             // Corrupt config falls back to defaults.
         }
-        config.ApiKeyRequired = !ExtractorService.IsLocalEndpoint(config.BaseUrl);
+        config.ApiKeyRequired = ExtractorService.RequiresApiKey(config.Provider, config.BaseUrl);
         return config;
     }
 
@@ -193,6 +197,8 @@ public sealed class WorkflowService
             RosterXlsxPath = Config.RosterXlsxPath,
             RosterGoogleSheetUrl = Config.RosterGoogleSheetUrl,
             RosterSheetName = Config.RosterSheetName,
+            ModelsByProvider = Config.ModelsByProvider,
+            BaseUrlsByProvider = Config.BaseUrlsByProvider,
         };
         File.WriteAllText(_configPath, JsonSerializer.Serialize(persisted, new JsonSerializerOptions { WriteIndented = true }));
     }
@@ -432,5 +438,7 @@ public sealed class WorkflowService
         public string? RosterXlsxPath { get; set; }
         public string? RosterGoogleSheetUrl { get; set; }
         public string? RosterSheetName { get; set; }
+        public Dictionary<string, string>? ModelsByProvider { get; set; }
+        public Dictionary<string, string>? BaseUrlsByProvider { get; set; }
     }
 }

@@ -16,6 +16,12 @@ public sealed partial class AppConfig : ObservableObject
     [ObservableProperty] private string _rosterGoogleSheetUrl = "";
     [ObservableProperty] private string _rosterSheetName = "Members";
 
+    /// <summary>Last model selected per provider, so switching providers restores the previous choice.</summary>
+    public Dictionary<string, string> ModelsByProvider { get; set; } = new();
+
+    /// <summary>Last base URL used per provider, so switching providers restores the previous value.</summary>
+    public Dictionary<string, string> BaseUrlsByProvider { get; set; } = new();
+
     // Runtime-only (not persisted), reflects SecureStorage / endpoint state.
     [ObservableProperty] private bool _apiKeyPresent;
     [ObservableProperty] private string _apiKeyHint = "";
@@ -33,6 +39,8 @@ public sealed partial class AppConfig : ObservableObject
         RosterXlsxPath = RosterXlsxPath,
         RosterGoogleSheetUrl = RosterGoogleSheetUrl,
         RosterSheetName = RosterSheetName,
+        ModelsByProvider = new Dictionary<string, string>(ModelsByProvider),
+        BaseUrlsByProvider = new Dictionary<string, string>(BaseUrlsByProvider),
         ApiKeyPresent = ApiKeyPresent,
         ApiKeyHint = ApiKeyHint,
         ApiKeyRequired = ApiKeyRequired,

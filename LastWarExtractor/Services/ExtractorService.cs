@@ -317,7 +317,7 @@ public sealed class ExtractorService
     {
         var key = config.ApiKey;
         if (string.IsNullOrEmpty(key))
-            key = IsLocalEndpoint(config.BaseUrl) ? "local" : throw new InvalidOperationException("API key is not set");
+            key = !RequiresApiKey(config.Provider, config.BaseUrl) ? "local" : throw new InvalidOperationException("API key is not set");
 
         if (config.Provider == "openai" && config.ApiStyle == "chat")
             return new OpenAiSdkChatBackend(config.Model, config.BaseUrl, key);
@@ -329,6 +329,11 @@ public sealed class ExtractorService
         var lower = baseUrl.ToLowerInvariant();
         return lower.Contains("localhost") || lower.Contains("127.0.0.1") || lower.Contains("::1");
     }
+
+    /// <summary>Whether an API key is expected for this provider/endpoint. "custom" always requires one,
+    /// since (unlike "local") it has no built-in no-auth preset — even if its URL happens to look local.</summary>
+    internal static bool RequiresApiKey(string provider, string baseUrl) =>
+        provider.Trim().ToLowerInvariant() == "custom" || !IsLocalEndpoint(baseUrl);
 
     internal static HttpClient SharedHttp => Http;
 }
