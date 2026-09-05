@@ -1,12 +1,6 @@
-using System.Text;
 using System.Text.Json;
 using OpenCvSharp;
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing;
-using ISImage = SixLabors.ImageSharp.Image;
-using ISize = SixLabors.ImageSharp.Size;
-using ISResizeMode = SixLabors.ImageSharp.Processing.ResizeMode;
+using SkiaSharp;
 
 namespace lawar4.Services;
 
@@ -22,6 +16,17 @@ public static class Fingerprinter
     private const int HashBits = (HashWidth - 1) * HashHeight; // 256
     private const int OrbSize = 160;
     private const int OrbFeatures = 300;
+
+    // Standard Rec. 601 luma coefficients, replicated across R/G/B so any channel can be read back.
+    private static readonly SKColorFilter GrayscaleFilter = SKColorFilter.CreateColorMatrix(new float[]
+    {
+        0.299f, 0.587f, 0.114f, 0, 0,
+        0.299f, 0.587f, 0.114f, 0, 0,
+        0.299f, 0.587f, 0.114f, 0, 0,
+        0,      0,      0,      1, 0,
+    });
+
+    private static readonly SKSamplingOptions HighQualitySampling = new(SKFilterMode.Linear, SKMipmapMode.Linear);
 
     public static string? FingerprintFromBBox(string imagePath, (int X, int Y, int Width, int Height)? bbox)
     {
@@ -43,27 +48,19 @@ public static class Fingerprinter
         }
     }
 
-    public static Image<Rgb24> CropAvatarFromNormalizedBBox(string imagePath, (int X, int Y, int Width, int Height) bbox)
+    public static SKBitmap CropAvatarFromNormalizedBBox(string imagePath, (int X, int Y, int Width, int Height) bbox)
     {
         var (x, y, w, h) = bbox;
-        var image = ISImage.Load<Rgb24>(imagePath);
-        try
-        {
-            image.Mutate(c => c.AutoOrient());
-            int width = image.Width, height = image.Height;
-            int left = Math.Clamp((int)Math.Round(x * width / 1000.0), 0, width - 1);
-            int top = Math.Clamp((int)Math.Round(y * height / 1000.0), 0, height - 1);
-            int right = Math.Clamp((int)Math.Round((x + w) * width / 1000.0), left + 1, width);
-            int bottom = Math.Clamp((int)Math.Round((y + h) * height / 1000.0), top + 1, height);
-            return image.Clone(c => c.Crop(new Rectangle(left, top, right - left, bottom - top)));
-        }
-        finally
-        {
-            image.Dispose();
-        }
+        using var oriented = LoadOriented(imagePath);
+        int width = oriented.Width, height = oriented.Height;
+        int left = Math.Clamp((int)Math.Round(x * width / 1000.0), 0, width - 1);
+        int top = Math.Clamp((int)Math.Round(y * height / 1000.0), 0, height - 1);
+        int right = Math.Clamp((int)Math.Round((x + w) * width / 1000.0), left + 1, width);
+        int bottom = Math.Clamp((int)Math.Round((y + h) * height / 1000.0), top + 1, height);
+        return CropBitmap(oriented, new SKRectI(left, top, right, bottom));
     }
 
-    public static string FingerprintImage(Image<Rgb24> image)
+    public static string FingerprintImage(SKBitmap image)
     {
         var hashes = new List<string>();
         foreach (var scale in CropScales)
@@ -73,7 +70,6 @@ public static class Fingerprinter
         }
 
         var descriptors = OrbDescriptors(image);
-        using var writer = new StringWriter();
         var payload = new Dictionary<string, object> { ["v"] = 2, ["hashes"] = hashes };
         if (descriptors is { Length: > 0 })
         {
@@ -83,37 +79,148 @@ public static class Fingerprinter
         return JsonSerializer.Serialize(payload);
     }
 
-    private static Image<Rgb24> CenterCrop(Image<Rgb24> image, double fraction)
+    private static SKBitmap LoadOriented(string imagePath)
+    {
+        using var stream = File.OpenRead(imagePath);
+        using var codec = SKCodec.Create(stream) ?? throw new InvalidOperationException("Unsupported image format.");
+        var bitmap = new SKBitmap(codec.Info.Width, codec.Info.Height, SKColorType.Rgba8888, SKAlphaType.Unpremul);
+        var result = codec.GetPixels(bitmap.Info, bitmap.GetPixels());
+        if (result != SKCodecResult.Success && result != SKCodecResult.IncompleteInput)
+            throw new InvalidOperationException($"Failed to decode image: {result}");
+        return ApplyExifOrientation(bitmap, codec.EncodedOrigin);
+    }
+
+    private static SKBitmap ApplyExifOrientation(SKBitmap bitmap, SKEncodedOrigin origin)
+    {
+        switch (origin)
+        {
+            case SKEncodedOrigin.TopLeft:
+                return bitmap;
+            case SKEncodedOrigin.TopRight:
+                using (bitmap)
+                    return FlipHorizontal(bitmap);
+            case SKEncodedOrigin.BottomRight:
+                using (bitmap)
+                    return Rotate180(bitmap);
+            case SKEncodedOrigin.BottomLeft:
+                using (bitmap)
+                    return FlipVertical(bitmap);
+            case SKEncodedOrigin.RightTop:
+                using (bitmap)
+                    return RotateCw90(bitmap);
+            case SKEncodedOrigin.LeftBottom:
+                using (bitmap)
+                    return RotateCcw90(bitmap);
+            case SKEncodedOrigin.LeftTop:
+                using (bitmap)
+                using (var flipped = FlipHorizontal(bitmap))
+                    return RotateCw90(flipped);
+            case SKEncodedOrigin.RightBottom:
+                using (bitmap)
+                using (var flipped = FlipHorizontal(bitmap))
+                    return RotateCcw90(flipped);
+            default:
+                return bitmap;
+        }
+    }
+
+    private static SKBitmap Rotate180(SKBitmap src)
+    {
+        var dst = new SKBitmap(src.Width, src.Height, src.ColorType, src.AlphaType);
+        using var canvas = new SKCanvas(dst);
+        canvas.RotateDegrees(180, src.Width / 2f, src.Height / 2f);
+        canvas.DrawBitmap(src, 0, 0, SKSamplingOptions.Default);
+        return dst;
+    }
+
+    private static SKBitmap RotateCw90(SKBitmap src)
+    {
+        var dst = new SKBitmap(src.Height, src.Width, src.ColorType, src.AlphaType);
+        using var canvas = new SKCanvas(dst);
+        canvas.Translate(dst.Width, 0);
+        canvas.RotateDegrees(90);
+        canvas.DrawBitmap(src, 0, 0, SKSamplingOptions.Default);
+        return dst;
+    }
+
+    private static SKBitmap RotateCcw90(SKBitmap src)
+    {
+        var dst = new SKBitmap(src.Height, src.Width, src.ColorType, src.AlphaType);
+        using var canvas = new SKCanvas(dst);
+        canvas.Translate(0, dst.Height);
+        canvas.RotateDegrees(-90);
+        canvas.DrawBitmap(src, 0, 0, SKSamplingOptions.Default);
+        return dst;
+    }
+
+    private static SKBitmap FlipHorizontal(SKBitmap src)
+    {
+        var dst = new SKBitmap(src.Width, src.Height, src.ColorType, src.AlphaType);
+        using var canvas = new SKCanvas(dst);
+        canvas.Scale(-1, 1, src.Width / 2f, 0);
+        canvas.DrawBitmap(src, 0, 0, SKSamplingOptions.Default);
+        return dst;
+    }
+
+    private static SKBitmap FlipVertical(SKBitmap src)
+    {
+        var dst = new SKBitmap(src.Width, src.Height, src.ColorType, src.AlphaType);
+        using var canvas = new SKCanvas(dst);
+        canvas.Scale(1, -1, 0, src.Height / 2f);
+        canvas.DrawBitmap(src, 0, 0, SKSamplingOptions.Default);
+        return dst;
+    }
+
+    private static SKBitmap CropBitmap(SKBitmap src, SKRectI rect)
+    {
+        var dst = new SKBitmap(rect.Width, rect.Height, src.ColorType, src.AlphaType);
+        if (!src.ExtractSubset(dst, rect))
+            throw new InvalidOperationException("Failed to crop bitmap.");
+        return dst;
+    }
+
+    private static SKBitmap CenterCrop(SKBitmap image, double fraction)
     {
         int width = image.Width, height = image.Height;
         int cropW = Math.Max(1, (int)(width * fraction));
         int cropH = Math.Max(1, (int)(height * fraction));
         int left = Math.Max(0, (width - cropW) / 2);
         int top = Math.Max(0, (height - cropH) / 2);
-        return image.Clone(c => c.Crop(new Rectangle(left, top, cropW, cropH)));
+        return CropBitmap(image, new SKRectI(left, top, left + cropW, top + cropH));
     }
 
-    private static string DHashHex(Image<Rgb24> image)
+    private static SKBitmap GrayscaleResize(SKBitmap src, int width, int height)
     {
-        using var gray = image.Clone(c => c
-            .Grayscale()
-            .Resize(new ResizeOptions
-            {
-                Size = new ISize(HashWidth, HashHeight),
-                Sampler = KnownResamplers.Lanczos3,
-                Mode = ISResizeMode.Stretch,
-            }));
+        var dst = new SKBitmap(width, height, SKColorType.Rgba8888, SKAlphaType.Opaque);
+        using var canvas = new SKCanvas(dst);
+        using var paint = new SKPaint { ColorFilter = GrayscaleFilter };
+        canvas.DrawBitmap(src, new SKRect(0, 0, width, height), HighQualitySampling, paint);
+        return dst;
+    }
 
-        var pixels = new byte[HashWidth * HashHeight];
-        gray.ProcessPixelRows(accessor =>
+    // Extracts the R channel (== G == B after grayscale) as a flat row-major byte plane.
+    private static byte[] GrayscalePlane(SKBitmap grayBitmap)
+    {
+        int width = grayBitmap.Width, height = grayBitmap.Height;
+        int rowBytes = grayBitmap.RowBytes;
+        int bpp = grayBitmap.BytesPerPixel;
+        var raw = new byte[rowBytes * height];
+        System.Runtime.InteropServices.Marshal.Copy(grayBitmap.GetPixels(), raw, 0, raw.Length);
+
+        var plane = new byte[width * height];
+        for (int yy = 0; yy < height; yy++)
         {
-            for (int yy = 0; yy < HashHeight; yy++)
-            {
-                var row = accessor.GetRowSpan(yy);
-                for (int xx = 0; xx < HashWidth; xx++)
-                    pixels[yy * HashWidth + xx] = row[xx].R;
-            }
-        });
+            int rowStart = yy * rowBytes;
+            for (int xx = 0; xx < width; xx++)
+                plane[yy * width + xx] = raw[rowStart + xx * bpp];
+        }
+        return plane;
+    }
+
+    private static string DHashHex(SKBitmap image)
+    {
+        using var gray = GrayscaleResize(image, HashWidth, HashHeight);
+        var pixels = GrayscalePlane(gray);
 
         var bytes = new byte[HashBits / 8]; // 32 bytes
         int bit = 0;
@@ -130,28 +237,11 @@ public static class Fingerprinter
         return Convert.ToHexString(bytes).ToLowerInvariant();
     }
 
-    private static byte[]? OrbDescriptors(Image<Rgb24> image)
+    private static byte[]? OrbDescriptors(SKBitmap image)
     {
         using var inner = CenterCrop(image, 0.76);
-        using var resized = inner.Clone(c => c
-            .Grayscale()
-            .Resize(new ResizeOptions
-            {
-                Size = new ISize(OrbSize, OrbSize),
-                Sampler = KnownResamplers.Lanczos3,
-                Mode = ISResizeMode.Stretch,
-            }));
-
-        var gray = new byte[OrbSize * OrbSize];
-        resized.ProcessPixelRows(accessor =>
-        {
-            for (int yy = 0; yy < OrbSize; yy++)
-            {
-                var row = accessor.GetRowSpan(yy);
-                for (int xx = 0; xx < OrbSize; xx++)
-                    gray[yy * OrbSize + xx] = row[xx].R;
-            }
-        });
+        using var resized = GrayscaleResize(inner, OrbSize, OrbSize);
+        var gray = GrayscalePlane(resized);
 
         using var mat = Mat.FromPixelData(OrbSize, OrbSize, MatType.CV_8UC1, gray);
         using var orb = ORB.Create(nFeatures: OrbFeatures, fastThreshold: 5);
