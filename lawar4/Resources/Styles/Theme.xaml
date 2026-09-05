@@ -67,13 +67,14 @@
         <Setter Property="TextColor" Value="{StaticResource Muted}" />
     </Style>
 
-    <!-- Buttons -->
+    <!-- Buttons: heights standardized here so rows align regardless of label length -->
     <Style x:Key="PrimaryButton" TargetType="Button">
         <Setter Property="BackgroundColor" Value="{StaticResource PrimaryBg}" />
         <Setter Property="TextColor" Value="{StaticResource PrimaryText}" />
         <Setter Property="FontAttributes" Value="Bold" />
         <Setter Property="CornerRadius" Value="3" />
         <Setter Property="Padding" Value="18,12" />
+        <Setter Property="HeightRequest" Value="44" />
         <Setter Property="HorizontalOptions" Value="Start" />
     </Style>
 
@@ -83,12 +84,15 @@
         <Setter Property="FontAttributes" Value="Bold" />
         <Setter Property="CornerRadius" Value="3" />
         <Setter Property="Padding" Value="18,12" />
+        <Setter Property="HeightRequest" Value="44" />
         <Setter Property="HorizontalOptions" Value="Start" />
     </Style>
 
     <Style x:Key="CompactButton" TargetType="Button" BasedOn="{StaticResource SecondaryButton}">
-        <Setter Property="Padding" Value="12,8" />
+        <Setter Property="Padding" Value="14,8" />
         <Setter Property="FontSize" Value="13" />
+        <Setter Property="HeightRequest" Value="40" />
+        <Setter Property="MinimumHeightRequest" Value="40" />
     </Style>
 
     <!-- Inputs: transparent so the InputShell Border is the only visible box (native WinUI

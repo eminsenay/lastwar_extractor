@@ -119,10 +119,10 @@
 
                     <Border Style="{StaticResource Card}" MaximumWidthRequest="640" HorizontalOptions="Start">
                         <VerticalStackLayout Spacing="18">
-                            <HorizontalStackLayout Spacing="4" BackgroundColor="{StaticResource ToggleBg}" Padding="4">
-                                <Button Text="Local Excel" Style="{StaticResource CompactButton}" Command="{Binding SelectXlsxSourceCommand}" />
-                                <Button Text="Google Sheet URL" Style="{StaticResource CompactButton}" Command="{Binding SelectGoogleSourceCommand}" />
-                            </HorizontalStackLayout>
+                            <Grid ColumnDefinitions="*,*" ColumnSpacing="4" BackgroundColor="{StaticResource ToggleBg}" Padding="4">
+                                <Button Grid.Column="0" Text="Local Excel" Style="{StaticResource CompactButton}" HorizontalOptions="Fill" Command="{Binding SelectXlsxSourceCommand}" />
+                                <Button Grid.Column="1" Text="Google Sheet URL" Style="{StaticResource CompactButton}" HorizontalOptions="Fill" Command="{Binding SelectGoogleSourceCommand}" />
+                            </Grid>
                             <VerticalStackLayout Spacing="6">
                                 <Label Text="SOURCE" Style="{StaticResource FieldLabel}" />
                                 <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
@@ -160,10 +160,10 @@
 
                     <Border Style="{StaticResource Card}" MaximumWidthRequest="720" HorizontalOptions="Start">
                         <VerticalStackLayout Spacing="18">
-                            <HorizontalStackLayout Spacing="10">
-                                <Button Text="Choose screenshots" Style="{StaticResource PrimaryButton}" Command="{Binding ChooseScreenshotsCommand}" />
-                                <Button Text="Choose folder" Style="{StaticResource SecondaryButton}" Command="{Binding ChooseFolderCommand}" />
-                            </HorizontalStackLayout>
+                            <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                                <Button Grid.Column="0" Text="Choose screenshots" Style="{StaticResource PrimaryButton}" HorizontalOptions="Fill" Command="{Binding ChooseScreenshotsCommand}" />
+                                <Button Grid.Column="1" Text="Choose folder" Style="{StaticResource SecondaryButton}" HorizontalOptions="Fill" Command="{Binding ChooseFolderCommand}" />
+                            </Grid>
                             <Border Style="{StaticResource InputShell}" Padding="12,8">
                                 <Editor Text="{Binding PastedPaths}" Placeholder="Or paste one absolute path per line" HeightRequest="90" BackgroundColor="Transparent" TextColor="{StaticResource TextColor}" />
                             </Border>
@@ -235,8 +235,8 @@
                     <Label Text="[ OP-05 / INTEL DEBRIEF ]" Style="{StaticResource Eyebrow}" />
                     <Label Text="Compile weekly score summary." Style="{StaticResource H2}" />
 
-                    <HorizontalStackLayout Spacing="10">
-                        <Border Style="{StaticResource Card}" MinimumWidthRequest="180">
+                    <Grid ColumnDefinitions="*,*,*" ColumnSpacing="10">
+                        <Border Grid.Column="0" Style="{StaticResource Card}" MinimumWidthRequest="180" HorizontalOptions="Fill">
                             <HorizontalStackLayout Spacing="12" VerticalOptions="Center">
                                 <Image Source="app_launcher.png" WidthRequest="36" HeightRequest="36" VerticalOptions="Center" />
                                 <VerticalStackLayout VerticalOptions="Center">
@@ -245,7 +245,7 @@
                                 </VerticalStackLayout>
                             </HorizontalStackLayout>
                         </Border>
-                        <Border Style="{StaticResource Card}" MinimumWidthRequest="180">
+                        <Border Grid.Column="1" Style="{StaticResource Card}" MinimumWidthRequest="180" HorizontalOptions="Fill">
                             <HorizontalStackLayout Spacing="12" VerticalOptions="Center">
                                 <Image Source="matched_status_badge.png" WidthRequest="36" HeightRequest="36" VerticalOptions="Center" />
                                 <VerticalStackLayout VerticalOptions="Center">
@@ -254,7 +254,7 @@
                                 </VerticalStackLayout>
                             </HorizontalStackLayout>
                         </Border>
-                        <Border Style="{StaticResource Card}" MinimumWidthRequest="180">
+                        <Border Grid.Column="2" Style="{StaticResource Card}" MinimumWidthRequest="180" HorizontalOptions="Fill">
                             <HorizontalStackLayout Spacing="12" VerticalOptions="Center">
                                 <Image Source="unmatched_target_skull_badge.png" WidthRequest="36" HeightRequest="36" VerticalOptions="Center" />
                                 <VerticalStackLayout VerticalOptions="Center">
@@ -263,7 +263,7 @@
                                 </VerticalStackLayout>
                             </HorizontalStackLayout>
                         </Border>
-                    </HorizontalStackLayout>
+                    </Grid>
                     <Button Text="Export workbook" Style="{StaticResource PrimaryButton}" Command="{Binding ExportCommand}" />
                     <Label Text="{Binding ExportMessage}" Style="{StaticResource Body}" IsVisible="{Binding ExportMessage, Converter={StaticResource NotEmpty}}" />
                 </VerticalStackLayout>
