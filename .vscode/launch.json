@@ -9,9 +9,9 @@
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build",
-            "program": "${workspaceFolder}/LastWarExtractor/bin/Debug/net10.0-windows10.0.19041.0/win-x64/LastWarExtractor.exe",
+            "program": "${workspaceFolder}/lawar4/bin/Debug/net10.0-windows10.0.19041.0/win-x64/lawar4.exe",
             "args": [],
-            "cwd": "${workspaceFolder}/LastWarExtractor",
+            "cwd": "${workspaceFolder}/lawar4",
             "stopAtEntry": false,
             "console": "internalConsole"
         },
@@ -19,7 +19,7 @@
             "name": "C#: Lawar4 Debug (C# Dev Kit)",
             "type": "dotnet",
             "request": "launch",
-            "projectPath": "${workspaceFolder}/LastWarExtractor/LastWarExtractor.csproj"
+            "projectPath": "${workspaceFolder}/lawar4/lawar4.csproj"
         }
     ]
 }

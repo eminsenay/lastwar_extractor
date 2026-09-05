@@ -1,6 +1,6 @@
-# Last War Weekly Extractor — .NET MAUI (Windows)
+# lawar4
 
-A native C# .NET MAUI desktop application forWindows that extracts weekly Last War leaderboard screenshots using a vision LLM, matches extracted player scores to an alliance roster, enables manual review of ambiguous matches, and exports a formatted multi-sheet Excel workbook.
+A desktop application for Windows that extracts weekly Last War: Survival Game leaderboard screenshots using a vision LLM, matches extracted player scores to an alliance roster, enables manual review of ambiguous matches, and exports a formatted multi-sheet Excel workbook.
 
 ## Requirements
 
@@ -11,11 +11,11 @@ A native C# .NET MAUI desktop application forWindows that extracts weekly Last W
 ## Build & run
 
 ```powershell
-dotnet build LastWarExtractor/LastWarExtractor.csproj -c Debug
-dotnet build LastWarExtractor/LastWarExtractor.csproj -c Release   # optimized
+dotnet build lawar4/lawar4.csproj -c Debug
+dotnet build lawar4/lawar4.csproj -c Release   # optimized
 
 # Run the built executable
-& .\LastWarExtractor\bin\Debug\net10.0-windows10.0.19041.0\win-x64\LastWarExtractor.exe
+& .\lawar4\bin\Debug\net10.0-windows10.0.19041.0\win-x64\lawar4.exe
 ```
 
 > A local `nuget.config` scopes package restore to nuget.org only.

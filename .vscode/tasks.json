@@ -7,7 +7,7 @@
             "type": "process",
             "args": [
                 "build",
-                "${workspaceFolder}/LastWarExtractor/LastWarExtractor.csproj",
+                "${workspaceFolder}/lawar4/lawar4.csproj",
                 "-c",
                 "Debug",
                 "/property:GenerateFullPaths=true",
