@@ -51,7 +51,7 @@
                     <Label Text="Point the extractor at your vision model." Style="{StaticResource H2}" />
                     <Label Text="Configure the LLM provider and enter your API key. Credentials are stored securely via encrypted vault." Style="{StaticResource Body}" />
 
-                    <Border Style="{StaticResource Card}" MaximumWidthRequest="640" HorizontalOptions="Start">
+                    <Border Style="{StaticResource WorkflowCard}">
                         <VerticalStackLayout Spacing="18">
                             <VerticalStackLayout Spacing="6">
                                 <Label Text="LLM PROVIDER" Style="{StaticResource FieldLabel}" />
@@ -117,7 +117,7 @@
                     <Label Text="Import the alliance roster." Style="{StaticResource H2}" />
                     <Label Text="Load the active squad member roster before executing recon extraction." Style="{StaticResource Body}" />
 
-                    <Border Style="{StaticResource Card}" MaximumWidthRequest="640" HorizontalOptions="Start">
+                    <Border Style="{StaticResource WorkflowCard}">
                         <VerticalStackLayout Spacing="18">
                             <Grid ColumnDefinitions="*,*" ColumnSpacing="4" BackgroundColor="{StaticResource ToggleBg}" Padding="4">
                                 <Button Grid.Column="0" Text="Local Excel" Style="{StaticResource CompactButton}" HorizontalOptions="Fill" Command="{Binding SelectXlsxSourceCommand}" />
@@ -158,29 +158,61 @@
                     <Label Text="Ingest weekly leaderboard screenshots." Style="{StaticResource H2}" />
                     <Label Text="Add leaderboard screenshots to queue, then trigger vision extraction." Style="{StaticResource Body}" />
 
-                    <Border Style="{StaticResource Card}" MaximumWidthRequest="720" HorizontalOptions="Start">
+                    <Border Style="{StaticResource WorkflowCard}">
                         <VerticalStackLayout Spacing="18">
-                            <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
-                                <Button Grid.Column="0" Text="Choose screenshots" Style="{StaticResource PrimaryButton}" HorizontalOptions="Fill" Command="{Binding ChooseScreenshotsCommand}" />
-                                <Button Grid.Column="1" Text="Choose folder" Style="{StaticResource SecondaryButton}" HorizontalOptions="Fill" Command="{Binding ChooseFolderCommand}" />
-                            </Grid>
-                            <Border Style="{StaticResource InputShell}" Padding="12,8">
-                                <Editor Text="{Binding PastedPaths}" Placeholder="Or paste one absolute path per line" HeightRequest="90" BackgroundColor="Transparent" TextColor="{StaticResource TextColor}" />
+
+                            <!-- Primary interaction: import surface (real drag-and-drop on Windows; buttons always work) -->
+                            <Border x:Name="DropZone" Loaded="DropZone_Loaded"
+                                    BackgroundColor="{StaticResource ToggleBg}" Stroke="{StaticResource InputLine}"
+                                    StrokeThickness="2" StrokeDashArray="6,4" StrokeShape="RoundRectangle 6" Padding="24,32">
+                                <VerticalStackLayout Spacing="10" HorizontalOptions="Center">
+                                    <Label Text="[ DROP SCREENSHOTS HERE ]" Style="{StaticResource Eyebrow}" HorizontalOptions="Center" HorizontalTextAlignment="Center" />
+                                    <Label Text="PNG · JPG · JPEG · WEBP · GIF" Style="{StaticResource FieldLabel}" HorizontalOptions="Center" HorizontalTextAlignment="Center" />
+                                    <Grid ColumnDefinitions="*,*" ColumnSpacing="10" WidthRequest="360" Margin="0,10,0,0">
+                                        <Button Grid.Column="0" Text="Choose screenshots" Style="{StaticResource SecondaryButton}" HorizontalOptions="Fill" Command="{Binding ChooseScreenshotsCommand}" />
+                                        <Button Grid.Column="1" Text="Choose folder" Style="{StaticResource SecondaryButton}" HorizontalOptions="Fill" Command="{Binding ChooseFolderCommand}" />
+                                    </Grid>
+                                </VerticalStackLayout>
                             </Border>
-                            <HorizontalStackLayout Spacing="10">
-                                <Button Text="Add screenshots" Style="{StaticResource SecondaryButton}" Command="{Binding AddScreenshotsCommand}" />
-                                <Button Text="{Binding ExtractButtonText}" Style="{StaticResource PrimaryButton}" Command="{Binding ExtractCommand}" IsEnabled="{Binding IsExtracting, Converter={StaticResource Invert}}" />
-                                <Button Text="Cancel" Style="{StaticResource SecondaryButton}" Command="{Binding CancelExtractionCommand}" IsVisible="{Binding IsExtracting}" />
-                            </HorizontalStackLayout>
+
+                            <!-- Review: queued screenshots -->
+                            <Grid ColumnDefinitions="*,Auto">
+                                <Label Text="QUEUED SCREENSHOTS" Style="{StaticResource FieldLabel}" VerticalOptions="Center" />
+                                <Label Grid.Column="1" Text="{Binding ScreenshotQueue.Count, StringFormat='{0} screenshots queued'}" Style="{StaticResource Body}" VerticalOptions="Center"
+                                       IsVisible="{Binding ScreenshotQueue.Count, Converter={StaticResource CountToBool}}" />
+                            </Grid>
+                            <ScrollView MaximumHeightRequest="140" IsVisible="{Binding ScreenshotQueue.Count, Converter={StaticResource CountToBool}}">
+                                <VerticalStackLayout BindableLayout.ItemsSource="{Binding ScreenshotQueue}" Spacing="6">
+                                    <BindableLayout.ItemTemplate>
+                                        <DataTemplate x:DataType="x:String">
+                                            <Label Text="{Binding .}" FontFamily="Consolas" FontSize="12" TextColor="{StaticResource Muted2}" />
+                                        </DataTemplate>
+                                    </BindableLayout.ItemTemplate>
+                                </VerticalStackLayout>
+                            </ScrollView>
+                            <Label Text="No screenshots queued yet. Choose screenshots or a folder above." Style="{StaticResource Body}"
+                                   IsVisible="{Binding ScreenshotQueue.Count, Converter={StaticResource CountToBool}, ConverterParameter=invert}" />
+
+                            <BoxView HeightRequest="1" Color="{StaticResource LineColor}" />
+
+                            <!-- Extract: primary action -->
+                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                                <Button Grid.Column="0" Text="{Binding ExtractButtonText}" Style="{StaticResource PrimaryButton}" HorizontalOptions="Fill"
+                                        Command="{Binding ExtractCommand}" IsEnabled="{Binding IsExtracting, Converter={StaticResource Invert}}" />
+                                <Button Grid.Column="1" Text="Cancel" Style="{StaticResource SecondaryButton}" Command="{Binding CancelExtractionCommand}" IsVisible="{Binding IsExtracting}" />
+                            </Grid>
                             <ProgressBar Progress="{Binding ExtractionProgress}" IsVisible="{Binding IsExtracting}" ProgressColor="{StaticResource TextColor}" />
                             <Label Text="{Binding ExtractionMessage}" Style="{StaticResource Body}" IsVisible="{Binding ExtractionMessage, Converter={StaticResource NotEmpty}}" />
+
+                            <!-- Secondary/advanced: manual absolute paths for power users -->
                             <BoxView HeightRequest="1" Color="{StaticResource LineColor}" />
-                            <VerticalStackLayout BindableLayout.ItemsSource="{Binding ScreenshotQueue}" Spacing="6">
-                                <BindableLayout.ItemTemplate>
-                                    <DataTemplate x:DataType="x:String">
-                                        <Label Text="{Binding .}" FontFamily="Consolas" FontSize="12" TextColor="{StaticResource Muted2}" />
-                                    </DataTemplate>
-                                </BindableLayout.ItemTemplate>
+                            <Button Text="{Binding ManualPathsToggleLabel}" Style="{StaticResource CompactButton}" HorizontalOptions="Start" Command="{Binding ToggleManualPathsCommand}" />
+                            <VerticalStackLayout IsVisible="{Binding ShowManualPaths}" Spacing="10">
+                                <Label Text="MANUAL FILE PATHS" Style="{StaticResource FieldLabel}" />
+                                <Border Style="{StaticResource InputShell}" Padding="12,8">
+                                    <Editor Text="{Binding PastedPaths}" Placeholder="Paste one absolute path per line" HeightRequest="90" BackgroundColor="Transparent" TextColor="{StaticResource TextColor}" />
+                                </Border>
+                                <Button Text="Add screenshots" Style="{StaticResource SecondaryButton}" HorizontalOptions="Start" Command="{Binding AddScreenshotsCommand}" />
                             </VerticalStackLayout>
                         </VerticalStackLayout>
                     </Border>

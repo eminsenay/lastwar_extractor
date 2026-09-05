@@ -357,6 +357,17 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty] private bool _isExtracting;
     [ObservableProperty] private double _extractionProgress;
     [ObservableProperty] private string _extractButtonText = "Extract";
+    [ObservableProperty] private bool _showManualPaths;
+
+    public string ManualPathsToggleLabel => ShowManualPaths ? "▾ Advanced / Manual file paths" : "▸ Advanced / Manual file paths";
+
+    partial void OnShowManualPathsChanged(bool value) => OnPropertyChanged(nameof(ManualPathsToggleLabel));
+
+    [RelayCommand]
+    private void ToggleManualPaths() => ShowManualPaths = !ShowManualPaths;
+
+    /// <summary>Entry point for surfaces outside the normal commands (e.g. native OS drag-and-drop).</summary>
+    public void AddScreenshotPaths(IEnumerable<string> paths) => AddPaths(paths);
 
     [RelayCommand]
     private async Task ChooseScreenshotsAsync()

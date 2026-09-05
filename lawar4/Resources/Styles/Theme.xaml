@@ -153,4 +153,11 @@
         <Setter Property="StrokeShape" Value="Rectangle" />
     </Style>
 
+    <!-- Shared width for the main Setup/Roster/Recon workflow cards so the desktop layout
+         reads as one consistent column; shrinks below 720 on narrower windows. -->
+    <Style x:Key="WorkflowCard" TargetType="Border" BasedOn="{StaticResource Card}">
+        <Setter Property="MaximumWidthRequest" Value="720" />
+        <Setter Property="HorizontalOptions" Value="Start" />
+    </Style>
+
 </ResourceDictionary>
