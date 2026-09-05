@@ -91,20 +91,45 @@
         <Setter Property="FontSize" Value="13" />
     </Style>
 
-    <!-- Inputs -->
+    <!-- Inputs: transparent so the InputShell Border is the only visible box (native WinUI
+         chrome for the underlying TextBox/ComboBox is stripped in MauiProgram.cs) -->
     <Style x:Key="Field" TargetType="Entry">
         <Setter Property="BackgroundColor" Value="Transparent" />
         <Setter Property="TextColor" Value="{StaticResource TextColor}" />
         <Setter Property="PlaceholderColor" Value="{StaticResource Muted}" />
         <Setter Property="FontSize" Value="15" />
-        <Setter Property="HeightRequest" Value="40" />
+        <Setter Property="HeightRequest" Value="44" />
+        <Setter Property="VisualStateManager.VisualStateGroups">
+            <VisualStateGroupList>
+                <VisualStateGroup x:Name="CommonStates">
+                    <VisualState x:Name="Normal" />
+                    <VisualState x:Name="Disabled">
+                        <VisualState.Setters>
+                            <Setter Property="Opacity" Value="0.5" />
+                        </VisualState.Setters>
+                    </VisualState>
+                </VisualStateGroup>
+            </VisualStateGroupList>
+        </Setter>
     </Style>
 
     <Style x:Key="FieldPicker" TargetType="Picker">
         <Setter Property="BackgroundColor" Value="Transparent" />
         <Setter Property="TextColor" Value="{StaticResource TextColor}" />
         <Setter Property="FontSize" Value="15" />
-        <Setter Property="HeightRequest" Value="40" />
+        <Setter Property="HeightRequest" Value="44" />
+        <Setter Property="VisualStateManager.VisualStateGroups">
+            <VisualStateGroupList>
+                <VisualStateGroup x:Name="CommonStates">
+                    <VisualState x:Name="Normal" />
+                    <VisualState x:Name="Disabled">
+                        <VisualState.Setters>
+                            <Setter Property="Opacity" Value="0.5" />
+                        </VisualState.Setters>
+                    </VisualState>
+                </VisualStateGroup>
+            </VisualStateGroupList>
+        </Setter>
     </Style>
 
     <!-- Visible container that marks a control as an editable field -->
@@ -113,7 +138,7 @@
         <Setter Property="Stroke" Value="{StaticResource InputLine}" />
         <Setter Property="StrokeThickness" Value="1" />
         <Setter Property="Padding" Value="12,0" />
-        <Setter Property="StrokeShape" Value="RoundRectangle 3" />
+        <Setter Property="StrokeShape" Value="RoundRectangle 4" />
     </Style>
 
     <Style x:Key="Card" TargetType="Border">
